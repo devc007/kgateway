@@ -16,7 +16,8 @@ var (
 	poolCrdManifest  = filepath.Join(crds.AbsPathToCrd("inferencepools.yaml"))
 	modelCrdManifest = filepath.Join(crds.AbsPathToCrd("inferencemodels.yaml"))
 	// infExtNs is the namespace to install kgateway
-	infExtNs = "inf-ext-e2e"
+	infExtNs                 = "inf-ext-e2e"
+	InfExtValuesManifestPath = e2e.ManifestPath("inference-extension-helm.yaml")
 )
 
 // TestInferenceExtension tests Inference Extension functionality
@@ -26,7 +27,7 @@ func TestInferenceExtension(t *testing.T) {
 		t,
 		&install.Context{
 			InstallNamespace:          infExtNs,
-			ProfileValuesManifestFile: e2e.InfExtValuesManifestPath,
+			ProfileValuesManifestFile: InfExtValuesManifestPath,
 			ValuesManifestFile:        e2e.EmptyValuesManifestPath,
 		},
 	)
