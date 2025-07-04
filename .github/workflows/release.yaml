@@ -8,7 +8,7 @@ on:
         description: "Validate the release artifacts"
       version:
         type: string
-        required: false
+        required: true
         description: |
           Version override for the release (must start with 'v' followed by semantic version).
           Examples: v1.2.3, v2.0.0-alpha.1, v1.0.0-beta.2
