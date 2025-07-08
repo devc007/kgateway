@@ -10,7 +10,7 @@ import (
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -110,9 +110,9 @@ func prioritizeWithLbInfo(logger *slog.Logger, ep ir.EndpointsForBackend, lbInfo
 	}
 	totalEndpoints := 0
 	for loc, eps := range ep.LbEps {
-		var l *envoy_config_core_v3.Locality
+		var l *corev3.Locality
 		if loc != (ir.PodLocality{}) {
-			l = &envoy_config_core_v3.Locality{
+			l = &corev3.Locality{
 				Region:  loc.Region,
 				Zone:    loc.Zone,
 				SubZone: loc.Subzone,
@@ -132,7 +132,7 @@ func prioritizeWithLbInfo(logger *slog.Logger, ep ir.EndpointsForBackend, lbInfo
 
 	if lbInfo.PriorityInfo != nil && lbInfo.PriorityInfo.FailoverPriority == nil {
 		// if no priorities, fallback to failover
-		proxyLocality := envoy_config_core_v3.Locality{
+		proxyLocality := corev3.Locality{
 			Region:  lbInfo.PodLocality.Region,
 			Zone:    lbInfo.PodLocality.Zone,
 			SubZone: lbInfo.PodLocality.Subzone,
@@ -224,7 +224,7 @@ func applyFailoverPriorityPerLocality(
 // and if we do, make sure that it works correctly with connected client set
 // set locality loadbalancing priority - This is based on Region/Zone/SubZone matching.
 func applyLocalityFailover(
-	proxyLocality *envoy_config_core_v3.Locality,
+	proxyLocality *corev3.Locality,
 	loadAssignment *envoy_config_endpoint_v3.ClusterLoadAssignment,
 	failover []*v1alpha3.LocalityLoadBalancerSetting_Failover,
 ) {
@@ -279,7 +279,7 @@ func applyLocalityFailover(
 	}
 }
 
-func LbPriority(proxyLocality, endpointsLocality *envoy_config_core_v3.Locality) int {
+func LbPriority(proxyLocality, endpointsLocality *corev3.Locality) int {
 	if proxyLocality.GetRegion() == endpointsLocality.GetRegion() {
 		if proxyLocality.GetZone() == endpointsLocality.GetZone() {
 			if proxyLocality.GetSubZone() == endpointsLocality.GetSubZone() {

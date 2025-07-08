@@ -3,15 +3,15 @@ package xds
 import (
 	"strings"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/wellknown"
 )
 
-var _ cache.NodeHash = new(nodeRoleHasher)
+var _ envoycache.NodeHash = new(nodeRoleHasher)
 
 const (
 	// KeyDelimiter is the character used to join segments of a cache key
@@ -49,7 +49,7 @@ type nodeRoleHasher struct{}
 // This value must match role metadata format: <owner>~<proxy_namespace>~<proxy_name>
 // which is equal to role defined on proxy-deployment ConfigMap:
 // kgateway-kube-gateway-api~{{ $gateway.gatewayNamespace }}-{{ $gateway.gatewayName | default (include "kgateway.gateway.fullname" .) }}
-func (h *nodeRoleHasher) ID(node *envoy_config_core_v3.Node) string {
+func (h *nodeRoleHasher) ID(node *corev3.Node) string {
 	if node.GetMetadata() != nil {
 		roleValue := node.GetMetadata().GetFields()[RoleKey]
 		if roleValue != nil {
@@ -60,8 +60,8 @@ func (h *nodeRoleHasher) ID(node *envoy_config_core_v3.Node) string {
 	return FallbackNodeCacheKey
 }
 
-func CloneSnap(snap *cache.Snapshot) *cache.Snapshot {
-	s := &cache.Snapshot{}
+func CloneSnap(snap *envoycache.Snapshot) *envoycache.Snapshot {
+	s := &envoycache.Snapshot{}
 	for k, v := range snap.Resources {
 		s.Resources[k].Version = v.Version
 		items := map[string]envoycachetypes.ResourceWithTTL{}

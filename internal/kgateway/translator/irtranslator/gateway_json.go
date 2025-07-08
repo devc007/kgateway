@@ -3,7 +3,7 @@ package irtranslator
 import (
 	"encoding/json"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -112,9 +112,9 @@ func (tr *TranslationResult) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(clustersData, &clusters); err != nil {
 			return err
 		}
-		tr.ExtraClusters = make([]*envoy_config_cluster_v3.Cluster, len(clusters))
+		tr.ExtraClusters = make([]*clusterv3.Cluster, len(clusters))
 		for i, clusterData := range clusters {
-			cluster := &envoy_config_cluster_v3.Cluster{}
+			cluster := &clusterv3.Cluster{}
 			if err := m.Unmarshal(clusterData, cluster); err != nil {
 				return err
 			}

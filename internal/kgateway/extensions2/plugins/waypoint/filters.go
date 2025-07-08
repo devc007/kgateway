@@ -3,7 +3,7 @@ package waypoint
 import (
 	"google.golang.org/protobuf/types/known/anypb"
 
-	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	hcmv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/filters"
@@ -12,7 +12,7 @@ import (
 )
 
 func CustomNetworkFilters(
-	extraFilters []*listenerv3.Filter,
+	extraFilters []*envoy_config_listener_v3.Filter,
 	stage filters.FilterStage_Stage,
 	predicate filters.FilterStage_Predicate,
 ) []*ir.CustomEnvoyFilter {
@@ -24,7 +24,7 @@ func CustomNetworkFilters(
 }
 
 func CustomNetworkFilter(
-	f *listenerv3.Filter,
+	f *envoy_config_listener_v3.Filter,
 	stage filters.FilterStage_Stage,
 	predicate filters.FilterStage_Predicate,
 ) *ir.CustomEnvoyFilter {

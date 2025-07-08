@@ -8,7 +8,7 @@ import (
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	ratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
-	routeconfv3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	ratev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 		name           string
 		descriptors    []v1alpha1.RateLimitDescriptor
 		expectedError  string
-		validateResult func(*testing.T, []*routeconfv3.RateLimit_Action)
+		validateResult func(*testing.T, []*envoy_config_route_v3.RateLimit_Action)
 	}{
 		{
 			name: "with generic key descriptor",
@@ -42,7 +42,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 1)
 				genericKey := actions[0].GetGenericKey()
 				require.NotNil(t, genericKey)
@@ -62,7 +62,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 1)
 				requestHeaders := actions[0].GetRequestHeaders()
 				require.NotNil(t, requestHeaders)
@@ -81,7 +81,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 1)
 				remoteAddress := actions[0].GetRemoteAddress()
 				require.NotNil(t, remoteAddress)
@@ -98,7 +98,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 1)
 				requestHeaders := actions[0].GetRequestHeaders()
 				require.NotNil(t, requestHeaders)
@@ -128,7 +128,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 2)
 				// First action is generic key
 				genericKey := actions[0].GetGenericKey()
@@ -160,7 +160,7 @@ func TestCreateRateLimitActions(t *testing.T) {
 					},
 				},
 			},
-			validateResult: func(t *testing.T, actions []*routeconfv3.RateLimit_Action) {
+			validateResult: func(t *testing.T, actions []*envoy_config_route_v3.RateLimit_Action) {
 				require.Len(t, actions, 2)
 				// First action is generic key
 				genericKey := actions[0].GetGenericKey()

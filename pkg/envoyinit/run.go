@@ -13,7 +13,7 @@ import (
 
 	envoy_config_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/envoyinit/pkg/downward"
 	"github.com/kgateway-dev/kgateway/v2/internal/envoyinit/pkg/utils"
@@ -79,10 +79,10 @@ func RunEnvoy(envoyExecutable, inputPath, outputPath string) {
 		if err != nil {
 			log.Fatalf("failed to unmarshal bootstrap config: %v", err)
 		}
-		bootstrap.GetStaticResources().Secrets = append(bootstrap.GetStaticResources().GetSecrets(), &tlsv3.Secret{
+		bootstrap.GetStaticResources().Secrets = append(bootstrap.GetStaticResources().GetSecrets(), &envoyauth.Secret{
 			Name: utils.SystemCaSecretName,
-			Type: &tlsv3.Secret_ValidationContext{
-				ValidationContext: &tlsv3.CertificateValidationContext{
+			Type: &envoyauth.Secret_ValidationContext{
+				ValidationContext: &envoyauth.CertificateValidationContext{
 					TrustedCa: &corev3.DataSource{
 						Specifier: &corev3.DataSource_Filename{
 							Filename: caPath,

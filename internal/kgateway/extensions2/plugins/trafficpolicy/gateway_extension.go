@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	ratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	envoy_ext_authz_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
@@ -115,7 +115,7 @@ func TranslateGatewayExtensionBuilder(commoncol *common.CommonCollections) func(
 	}
 }
 
-func ResolveExtGrpcService(krtctx krt.HandlerContext, backends *krtcollections.BackendIndex, disableExtensionRefValidation bool, objectSource ir.ObjectSource, grpcService *v1alpha1.ExtGrpcService) (*envoy_core_v3.GrpcService, error) {
+func ResolveExtGrpcService(krtctx krt.HandlerContext, backends *krtcollections.BackendIndex, disableExtensionRefValidation bool, objectSource ir.ObjectSource, grpcService *v1alpha1.ExtGrpcService) (*corev3.GrpcService, error) {
 	var clusterName string
 	var authority string
 	if grpcService != nil {
@@ -144,9 +144,9 @@ func ResolveExtGrpcService(krtctx krt.HandlerContext, backends *krtcollections.B
 	if clusterName == "" {
 		return nil, errors.New("backend not found")
 	}
-	envoyGrpcService := &envoy_core_v3.GrpcService{
-		TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
-			EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
+	envoyGrpcService := &corev3.GrpcService{
+		TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+			EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
 				ClusterName: clusterName,
 				Authority:   authority,
 			},
@@ -156,13 +156,13 @@ func ResolveExtGrpcService(krtctx krt.HandlerContext, backends *krtcollections.B
 }
 
 // FIXME: Should this live here instead of the global rate limit plugin?
-func resolveRateLimitService(grpcService *envoy_core_v3.GrpcService, rateLimit *v1alpha1.RateLimitProvider) *ratev3.RateLimit {
+func resolveRateLimitService(grpcService *corev3.GrpcService, rateLimit *v1alpha1.RateLimitProvider) *ratev3.RateLimit {
 	envoyRateLimit := &ratev3.RateLimit{
 		Domain:          rateLimit.Domain,
 		FailureModeDeny: !rateLimit.FailOpen,
 		RateLimitService: &ratelimitv3.RateLimitServiceConfig{
 			GrpcService:         grpcService,
-			TransportApiVersion: envoy_core_v3.ApiVersion_V3,
+			TransportApiVersion: corev3.ApiVersion_V3,
 		},
 	}
 

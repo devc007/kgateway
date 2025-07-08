@@ -13,7 +13,7 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/extensions2/settings"
@@ -258,7 +258,7 @@ func CreateLBEndpoint(address string, port uint32, podLabels map[string]string, 
 	// Don't get the metadata labels and filter metadata for the envoy load balancer based on the backend, as this is not used
 	// metadata := getLbMetadata(upstream, labels, "")
 	// Get the metadata labels for the transport socket match if Istio auto mtls is enabled
-	metadata := &envoy_config_core_v3.Metadata{
+	metadata := &corev3.Metadata{
 		FilterMetadata: map[string]*structpb.Struct{},
 	}
 	metadata = addIstioAutomtlsMetadata(metadata, podLabels, enableAutoMtls)
@@ -274,12 +274,12 @@ func CreateLBEndpoint(address string, port uint32, podLabels map[string]string, 
 		LoadBalancingWeight: wrapperspb.UInt32(1),
 		HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_config_endpoint_v3.Endpoint{
-				Address: &envoy_config_core_v3.Address{
-					Address: &envoy_config_core_v3.Address_SocketAddress{
-						SocketAddress: &envoy_config_core_v3.SocketAddress{
-							Protocol: envoy_config_core_v3.SocketAddress_TCP,
+				Address: &corev3.Address{
+					Address: &corev3.Address_SocketAddress{
+						SocketAddress: &corev3.SocketAddress{
+							Protocol: corev3.SocketAddress_TCP,
 							Address:  address,
-							PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+							PortSpecifier: &corev3.SocketAddress_PortValue{
 								PortValue: port,
 							},
 						},
@@ -290,7 +290,7 @@ func CreateLBEndpoint(address string, port uint32, podLabels map[string]string, 
 	}
 }
 
-func addIstioAutomtlsMetadata(metadata *envoy_config_core_v3.Metadata, labels map[string]string, enableAutoMtls bool) *envoy_config_core_v3.Metadata {
+func addIstioAutomtlsMetadata(metadata *corev3.Metadata, labels map[string]string, enableAutoMtls bool) *corev3.Metadata {
 	const EnvoyTransportSocketMatch = "envoy.transport_socket_match"
 	if enableAutoMtls {
 		if _, ok := labels[wellknown.IstioTlsModeLabel]; ok {

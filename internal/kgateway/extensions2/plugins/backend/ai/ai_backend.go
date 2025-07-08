@@ -7,7 +7,7 @@ import (
 	"maps"
 	"os"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoytransformation "github.com/solo-io/envoy-gloo/go/config/filter/http/transformation/v2"
@@ -152,7 +152,7 @@ func PreprocessAIBackend(ctx context.Context, aiBackend *v1alpha1.AIBackend, ir 
 	ir.Transformation = transformations
 
 	extProcRouteSettings.GetOverrides().GrpcInitialMetadata = append(extProcRouteSettings.GetOverrides().GetGrpcInitialMetadata(),
-		&envoy_config_core_v3.HeaderValue{
+		&corev3.HeaderValue{
 			Key:   "x-llm-provider",
 			Value: llmProvider,
 		},
@@ -161,7 +161,7 @@ func PreprocessAIBackend(ctx context.Context, aiBackend *v1alpha1.AIBackend, ir 
 	// TODO: add support for multi pool setting different models for different pools
 	if llmModel != "" {
 		extProcRouteSettings.GetOverrides().GrpcInitialMetadata = append(extProcRouteSettings.GetOverrides().GetGrpcInitialMetadata(),
-			&envoy_config_core_v3.HeaderValue{
+			&corev3.HeaderValue{
 				Key:   "x-llm-model",
 				Value: llmModel,
 			})
@@ -171,7 +171,7 @@ func PreprocessAIBackend(ctx context.Context, aiBackend *v1alpha1.AIBackend, ir 
 	// This is an optimization to allow us to not have to wait for the headers request to
 	// Initialize our logger/handler classes.
 	extProcRouteSettings.GetOverrides().GrpcInitialMetadata = append(extProcRouteSettings.GetOverrides().GetGrpcInitialMetadata(),
-		&envoy_config_core_v3.HeaderValue{
+		&corev3.HeaderValue{
 			Key:   "x-request-id",
 			Value: "%REQ(X-REQUEST-ID)%",
 		},

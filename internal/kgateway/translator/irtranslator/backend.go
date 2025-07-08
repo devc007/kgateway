@@ -6,8 +6,8 @@ import (
 	"time"
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -137,7 +137,7 @@ var h2Options = func() *anypb.Any {
 		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
 			ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
 				ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
-					Http2ProtocolOptions: &envoy_config_core_v3.Http2ProtocolOptions{},
+					Http2ProtocolOptions: &corev3.Http2ProtocolOptions{},
 				},
 			},
 		},
@@ -204,7 +204,7 @@ func initializeCluster(b ir.BackendObjectIR) *clusterv3.Cluster {
 	// circuitBreakers := t.settings.GetGloo().GetCircuitBreakers()
 	out := &clusterv3.Cluster{
 		Name:     b.ClusterName(),
-		Metadata: new(envoy_config_core_v3.Metadata),
+		Metadata: new(corev3.Metadata),
 		//	CircuitBreakers:  getCircuitBreakers(upstream.GetCircuitBreakers(), circuitBreakers),
 		//	LbSubsetConfig:   createLbConfig(upstream),
 		//	HealthChecks:     hcConfig,
@@ -240,13 +240,13 @@ func initializeCluster(b ir.BackendObjectIR) *clusterv3.Cluster {
 func buildBlackholeCluster(b *ir.BackendObjectIR) *clusterv3.Cluster {
 	out := &clusterv3.Cluster{
 		Name:     b.ClusterName(),
-		Metadata: new(envoy_config_core_v3.Metadata),
+		Metadata: new(corev3.Metadata),
 		ClusterDiscoveryType: &clusterv3.Cluster_Type{
 			Type: clusterv3.Cluster_STATIC,
 		},
-		LoadAssignment: &endpointv3.ClusterLoadAssignment{
+		LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: b.ClusterName(),
-			Endpoints:   []*endpointv3.LocalityLbEndpoints{},
+			Endpoints:   []*envoy_config_endpoint_v3.LocalityLbEndpoints{},
 		},
 	}
 	return out

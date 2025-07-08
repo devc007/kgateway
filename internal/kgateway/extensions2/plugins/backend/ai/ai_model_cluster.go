@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	envoytransformation "github.com/solo-io/envoy-gloo/go/config/filter/http/transformation/v2"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -38,7 +38,7 @@ func tlsMatch(matchStr string) *structpb.Struct {
 	}
 }
 
-func ProcessAIBackend(in *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecrets map[string]*ir.Secret, out *envoy_config_cluster_v3.Cluster) error {
+func ProcessAIBackend(in *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecrets map[string]*ir.Secret, out *clusterv3.Cluster) error {
 	if in == nil {
 		return nil
 	}
@@ -54,10 +54,10 @@ func ProcessAIBackend(in *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecrets 
 // This function is used by the `ProcessBackend` function to build the cluster for the AI backend.
 // It is ALSO used by `ProcessRoute` to create the cluster in the event of backup models being used
 // and fallbacks being required.
-func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecrets map[string]*ir.Secret, out *envoy_config_cluster_v3.Cluster) error {
+func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecrets map[string]*ir.Secret, out *clusterv3.Cluster) error {
 	// set the type to strict dns to support mutli pool backends
-	out.ClusterDiscoveryType = &envoy_config_cluster_v3.Cluster_Type{
-		Type: envoy_config_cluster_v3.Cluster_STRICT_DNS,
+	out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
+		Type: clusterv3.Cluster_STRICT_DNS,
 	}
 
 	// We are reliant on https://github.com/envoyproxy/envoy/pull/34154 to merge
@@ -134,15 +134,15 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 	}
 
 	// Add proper certificate validation
-	validationContext := &envoy_tls_v3.CertificateValidationContext{}
-	sdsValidationCtx := &envoy_tls_v3.SdsSecretConfig{
+	validationContext := &envoyauth.CertificateValidationContext{}
+	sdsValidationCtx := &envoyauth.SdsSecretConfig{
 		Name: eiutils.SystemCaSecretName,
 	}
 
-	tlsContextDefault := &envoy_tls_v3.UpstreamTlsContext{
-		CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
-			ValidationContextType: &envoy_tls_v3.CommonTlsContext_CombinedValidationContext{
-				CombinedValidationContext: &envoy_tls_v3.CommonTlsContext_CombinedCertificateValidationContext{
+	tlsContextDefault := &envoyauth.UpstreamTlsContext{
+		CommonTlsContext: &envoyauth.CommonTlsContext{
+			ValidationContextType: &envoyauth.CommonTlsContext_CombinedValidationContext{
+				CombinedValidationContext: &envoyauth.CommonTlsContext_CombinedCertificateValidationContext{
 					DefaultValidationContext:         validationContext,
 					ValidationContextSdsSecretConfig: sdsValidationCtx,
 				},
@@ -154,11 +154,11 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 	if err != nil {
 		return err
 	}
-	tlsMatchDefault := &envoy_config_cluster_v3.Cluster_TransportSocketMatch{
+	tlsMatchDefault := &clusterv3.Cluster_TransportSocketMatch{
 		Name: "tls",
-		TransportSocket: &envoy_config_core_v3.TransportSocket{
+		TransportSocket: &corev3.TransportSocket{
 			Name: wellknown.TransportSocketTls,
-			ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{
+			ConfigType: &corev3.TransportSocket_TypedConfig{
 				TypedConfig: tlsCtxDefaultAny,
 			},
 		},
@@ -167,19 +167,19 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 
 	// Skip verification if explicitly requested
 	// Note: We don't set ValidationContextType at all, which effectively disables verification
-	tlsContextSkipValidation := &envoy_tls_v3.UpstreamTlsContext{
-		CommonTlsContext: &envoy_tls_v3.CommonTlsContext{},
+	tlsContextSkipValidation := &envoyauth.UpstreamTlsContext{
+		CommonTlsContext: &envoyauth.CommonTlsContext{},
 		AutoHostSni:      true,
 	}
 	tlsCtxSkipValidationAny, err := utils.MessageToAny(tlsContextSkipValidation)
 	if err != nil {
 		return err
 	}
-	tsMatchSkipValidation := &envoy_config_cluster_v3.Cluster_TransportSocketMatch{
+	tsMatchSkipValidation := &clusterv3.Cluster_TransportSocketMatch{
 		Name: "tls",
-		TransportSocket: &envoy_config_core_v3.TransportSocket{
+		TransportSocket: &corev3.TransportSocket{
 			Name: wellknown.TransportSocketTls,
-			ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{
+			ConfigType: &corev3.TransportSocket_TypedConfig{
 				TypedConfig: tlsCtxSkipValidationAny,
 			},
 		},
@@ -188,7 +188,7 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 
 	// First attempt to match tls or if skip verification is enabled. The default match is always plaintext
 	// append all transport socket matches
-	out.TransportSocketMatches = append(out.GetTransportSocketMatches(), []*envoy_config_cluster_v3.Cluster_TransportSocketMatch{
+	out.TransportSocketMatches = append(out.GetTransportSocketMatches(), []*clusterv3.Cluster_TransportSocketMatch{
 		// attempt to match tls default if match is set
 		tlsMatchDefault,
 		// attempt to match tls skip validation if match is set and skip verification is true
@@ -196,9 +196,9 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 		// add the plaintext default match
 		{
 			Name: "plaintext",
-			TransportSocket: &envoy_config_core_v3.TransportSocket{
+			TransportSocket: &corev3.TransportSocket{
 				Name: wellknown.TransportSocketRawBuffer,
-				ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{
+				ConfigType: &corev3.TransportSocket_TypedConfig{
 					TypedConfig: &anypb.Any{
 						TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.raw_buffer.v3.RawBuffer",
 					},
@@ -348,7 +348,7 @@ func buildLocalityLbEndpoint(
 	host string,
 	port int32,
 	hostOverride *v1alpha1.Host,
-	metadata *envoy_config_core_v3.Metadata,
+	metadata *corev3.Metadata,
 ) *envoy_config_endpoint_v3.LbEndpoint {
 	var insecureSkipVerify bool
 	if hostOverride != nil {
@@ -385,12 +385,12 @@ func buildLocalityLbEndpoint(
 		HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_config_endpoint_v3.Endpoint{
 				Hostname: host,
-				Address: &envoy_config_core_v3.Address{
-					Address: &envoy_config_core_v3.Address_SocketAddress{
-						SocketAddress: &envoy_config_core_v3.SocketAddress{
-							Protocol: envoy_config_core_v3.SocketAddress_TCP,
+				Address: &corev3.Address{
+					Address: &corev3.Address_SocketAddress{
+						SocketAddress: &corev3.SocketAddress{
+							Protocol: corev3.SocketAddress_TCP,
 							Address:  host,
-							PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+							PortSpecifier: &corev3.SocketAddress_PortValue{
 								PortValue: uint32(port),
 							},
 						},
@@ -403,7 +403,7 @@ func buildLocalityLbEndpoint(
 
 // `buildEndpointMeta` builds the metadata for the endpoint.
 // This metadata is used by the post routing transformation filter to modify the request body.
-func buildEndpointMeta(token, model string, additionalFields map[string]string) *envoy_config_core_v3.Metadata {
+func buildEndpointMeta(token, model string, additionalFields map[string]string) *corev3.Metadata {
 	fields := map[string]*structpb.Value{
 		"auth_token": structpb.NewStringValue(token),
 	}
@@ -413,7 +413,7 @@ func buildEndpointMeta(token, model string, additionalFields map[string]string) 
 	for k, v := range additionalFields {
 		fields[k] = structpb.NewStringValue(v)
 	}
-	return &envoy_config_core_v3.Metadata{
+	return &corev3.Metadata{
 		FilterMetadata: map[string]*structpb.Struct{
 			"io.solo.transformation": {
 				Fields: fields,

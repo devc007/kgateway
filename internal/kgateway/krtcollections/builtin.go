@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	corsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -325,7 +325,7 @@ func convertSessionPersistence(sessionPersistence *gwv1.SessionPersistence) *any
 		return nil
 	}
 	statefulSession := &stateful_sessionv3.StatefulSession{
-		SessionState: &envoy_config_core_v3.TypedExtensionConfig{
+		SessionState: &corev3.TypedExtensionConfig{
 			Name:        "envoy.http.stateful_session." + strings.ToLower(string(spType)),
 			TypedConfig: sessionStateAny,
 		},
@@ -405,7 +405,7 @@ func translateStatusCode(i *int) envoy_config_route_v3.RedirectAction_RedirectRe
 // ===========
 type mirrorIr struct {
 	Cluster         string
-	RuntimeFraction *envoy_config_core_v3.RuntimeFractionalPercent
+	RuntimeFraction *corev3.RuntimeFractionalPercent
 }
 
 func (m *mirrorIr) apply(outputRoute *envoy_config_route_v3.Route) {
@@ -441,7 +441,7 @@ func convertMirrorIR(kctx krt.HandlerContext, f *gwv1.HTTPRequestMirrorFilter, f
 // HEADER MODIFIER IR
 // ==================
 type headerModifierIr struct {
-	Add       []*envoy_config_core_v3.HeaderValueOption
+	Add       []*corev3.HeaderValueOption
 	Remove    []string
 	IsRequest bool // true=request, false=response
 }
@@ -473,23 +473,23 @@ func convertHeaderModifierIR(_ krt.HandlerContext, f *gwv1.HTTPHeaderFilter, isR
 	if f == nil {
 		return nil
 	}
-	var add []*envoy_config_core_v3.HeaderValueOption
+	var add []*corev3.HeaderValueOption
 	for _, h := range f.Add {
-		add = append(add, &envoy_config_core_v3.HeaderValueOption{
-			Header: &envoy_config_core_v3.HeaderValue{
+		add = append(add, &corev3.HeaderValueOption{
+			Header: &corev3.HeaderValue{
 				Key:   string(h.Name),
 				Value: h.Value,
 			},
-			AppendAction: envoy_config_core_v3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD,
+			AppendAction: corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD,
 		})
 	}
 	for _, h := range f.Set {
-		add = append(add, &envoy_config_core_v3.HeaderValueOption{
-			Header: &envoy_config_core_v3.HeaderValue{
+		add = append(add, &corev3.HeaderValueOption{
+			Header: &corev3.HeaderValue{
 				Key:   string(h.Name),
 				Value: h.Value,
 			},
-			AppendAction: envoy_config_core_v3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
+			AppendAction: corev3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD,
 		})
 	}
 	return &headerModifierIr{
@@ -499,9 +499,9 @@ func convertHeaderModifierIR(_ krt.HandlerContext, f *gwv1.HTTPHeaderFilter, isR
 	}
 }
 
-func getFractionPercent(f gwv1.HTTPRequestMirrorFilter) *envoy_config_core_v3.RuntimeFractionalPercent {
+func getFractionPercent(f gwv1.HTTPRequestMirrorFilter) *corev3.RuntimeFractionalPercent {
 	if f.Percent != nil {
-		return &envoy_config_core_v3.RuntimeFractionalPercent{
+		return &corev3.RuntimeFractionalPercent{
 			DefaultValue: &envoytype.FractionalPercent{
 				Numerator:   uint32(*f.Percent),
 				Denominator: envoytype.FractionalPercent_HUNDRED,
@@ -514,7 +514,7 @@ func getFractionPercent(f gwv1.HTTPRequestMirrorFilter) *envoy_config_core_v3.Ru
 			denom = float64(*f.Fraction.Denominator)
 		}
 		ratio := float64(f.Fraction.Numerator) / denom
-		return &envoy_config_core_v3.RuntimeFractionalPercent{
+		return &corev3.RuntimeFractionalPercent{
 			DefaultValue: toEnvoyPercentage(ratio),
 		}
 	}

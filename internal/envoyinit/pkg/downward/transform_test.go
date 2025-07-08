@@ -2,9 +2,9 @@ package downward_test
 
 import (
 	envoy_config_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	envoy_config_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -25,7 +25,7 @@ var _ = Describe("Transform", func() {
 				nodeIp:  "5.5.5.5",
 			}
 			bootstrapConfig = new(envoy_config_bootstrap.Bootstrap)
-			bootstrapConfig.Node = &envoy_core.Node{}
+			bootstrapConfig.Node = &corev3.Node{}
 		})
 
 		It("should transform node id", func() {
@@ -61,15 +61,15 @@ var _ = Describe("Transform", func() {
 
 		It("should transform static resources", func() {
 			bootstrapConfig.StaticResources = &envoy_config_bootstrap.Bootstrap_StaticResources{
-				Clusters: []*envoy_config_cluster.Cluster{{
-					LoadAssignment: &envoy_config_endpoint.ClusterLoadAssignment{
-						Endpoints: []*envoy_config_endpoint.LocalityLbEndpoints{{
-							LbEndpoints: []*envoy_config_endpoint.LbEndpoint{{
-								HostIdentifier: &envoy_config_endpoint.LbEndpoint_Endpoint{
-									Endpoint: &envoy_config_endpoint.Endpoint{
-										Address: &envoy_core.Address{
-											Address: &envoy_core.Address_SocketAddress{
-												SocketAddress: &envoy_core.SocketAddress{
+				Clusters: []*clusterv3.Cluster{{
+					LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+						Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{{
+							LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{{
+								HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+									Endpoint: &envoy_config_endpoint_v3.Endpoint{
+										Address: &corev3.Address{
+											Address: &corev3.Address_SocketAddress{
+												SocketAddress: &corev3.SocketAddress{
 													Address: "{{.NodeIp}}",
 												},
 											},

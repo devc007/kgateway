@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"slices"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/protobuf/proto"
@@ -141,9 +141,9 @@ func (h *httpRouteConfigurationTranslator) computeVirtualHost(
 
 type backendConfigContext struct {
 	typedPerFilterConfigRoute ir.TypedFilterConfigMap
-	RequestHeadersToAdd       []*envoy_config_core_v3.HeaderValueOption
+	RequestHeadersToAdd       []*corev3.HeaderValueOption
 	RequestHeadersToRemove    []string
-	ResponseHeadersToAdd      []*envoy_config_core_v3.HeaderValueOption
+	ResponseHeadersToAdd      []*corev3.HeaderValueOption
 	ResponseHeadersToRemove   []string
 }
 

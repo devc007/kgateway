@@ -7,7 +7,7 @@ import (
 	agentgateway "github.com/agentgateway/agentgateway/go/api"
 	"github.com/agentgateway/agentgateway/go/api/a2a"
 	"github.com/agentgateway/agentgateway/go/api/mcp"
-	envoytypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,13 +78,13 @@ func TestXDSCacheState(t *testing.T) {
 	}
 
 	snapshot := &agentGwSnapshot{
-		AgentGwA2AServices: envoycache.NewResources("v1", []envoytypes.Resource{
+		AgentGwA2AServices: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			a2aTarget,
 		}),
-		AgentGwMcpServices: envoycache.NewResources("v1", []envoytypes.Resource{
+		AgentGwMcpServices: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			mcpTarget,
 		}),
-		Listeners: envoycache.NewResources("v1", []envoytypes.Resource{
+		Listeners: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			listener,
 		}),
 	}
@@ -202,13 +202,13 @@ func TestAgentGwSnapshot(t *testing.T) {
 
 	// manually build the snapshot
 	snapshot := &agentGwSnapshot{
-		AgentGwA2AServices: envoycache.NewResources("v1", []envoytypes.Resource{
+		AgentGwA2AServices: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			a2aTarget,
 		}),
-		AgentGwMcpServices: envoycache.NewResources("v1", []envoytypes.Resource{
+		AgentGwMcpServices: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			mcpTarget,
 		}),
-		Listeners: envoycache.NewResources("v1", []envoytypes.Resource{
+		Listeners: envoycache.NewResources("v1", []envoycachetypes.Resource{
 			listener,
 		}),
 	}

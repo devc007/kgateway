@@ -5,7 +5,7 @@ import (
 	"time"
 
 	mutation_v3 "github.com/envoyproxy/go-control-plane/envoy/config/common/mutation_rules/v3"
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	header_mutationv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_mutation/v3"
 	"google.golang.org/protobuf/proto"
@@ -180,7 +180,7 @@ func (s *ourPolicyPass) ApplyForRoute(ctx context.Context, pCtx *ir.RouteContext
 	}
 	// apply the metadata from our IR to envoy's route object
 	if out.Metadata == nil {
-		out.Metadata = &envoy_core_v3.Metadata{}
+		out.Metadata = &corev3.Metadata{}
 	}
 	out.Metadata.FilterMetadata["example.plugin"] = cmIr.metadata
 
@@ -205,8 +205,8 @@ func (s *ourPolicyPass) HttpFilters(ctx context.Context, fc ir.FilterChainCommon
 					ResponseMutations: []*mutation_v3.HeaderMutation{
 						{
 							Action: &mutation_v3.HeaderMutation_Append{
-								Append: &envoy_core_v3.HeaderValueOption{
-									Header: &envoy_core_v3.HeaderValue{
+								Append: &corev3.HeaderValueOption{
+									Header: &corev3.HeaderValue{
 										Key:   "x-metadata-added",
 										Value: "true",
 									},

@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	envoyaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyalfile "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	cel "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/filters/cel/v3"
 	envoygrpc "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/grpc/v3"
@@ -143,10 +143,10 @@ func createFileAccessLog(fileSink *v1alpha1.FileSink) (*envoyaccesslog.AccessLog
 	switch {
 	case fileSink.StringFormat != "":
 		fileCfg.AccessLogFormat = &envoyalfile.FileAccessLog_LogFormat{
-			LogFormat: &envoycore.SubstitutionFormatString{
-				Format: &envoycore.SubstitutionFormatString_TextFormatSource{
-					TextFormatSource: &envoycore.DataSource{
-						Specifier: &envoycore.DataSource_InlineString{
+			LogFormat: &corev3.SubstitutionFormatString{
+				Format: &corev3.SubstitutionFormatString_TextFormatSource{
+					TextFormatSource: &corev3.DataSource{
+						Specifier: &corev3.DataSource_InlineString{
 							InlineString: fileSink.StringFormat,
 						},
 					},
@@ -156,8 +156,8 @@ func createFileAccessLog(fileSink *v1alpha1.FileSink) (*envoyaccesslog.AccessLog
 		}
 	case fileSink.JsonFormat != nil:
 		fileCfg.AccessLogFormat = &envoyalfile.FileAccessLog_LogFormat{
-			LogFormat: &envoycore.SubstitutionFormatString{
-				Format: &envoycore.SubstitutionFormatString_JsonFormat{
+			LogFormat: &corev3.SubstitutionFormatString{
+				Format: &corev3.SubstitutionFormatString_JsonFormat{
 					JsonFormat: convertJsonFormat(fileSink.JsonFormat),
 				},
 				Formatters: formatterExtensions,
@@ -249,7 +249,7 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 				StatusCodeFilter: &envoyaccesslog.StatusCodeFilter{
 					Comparison: &envoyaccesslog.ComparisonFilter{
 						Op: op,
-						Value: &envoycore.RuntimeUInt32{
+						Value: &corev3.RuntimeUInt32{
 							DefaultValue: filter.StatusCodeFilter.Value,
 						},
 					},
@@ -268,7 +268,7 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 				DurationFilter: &envoyaccesslog.DurationFilter{
 					Comparison: &envoyaccesslog.ComparisonFilter{
 						Op: op,
-						Value: &envoycore.RuntimeUInt32{
+						Value: &corev3.RuntimeUInt32{
 							DefaultValue: filter.DurationFilter.Value,
 						},
 					},
@@ -294,7 +294,7 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 		alCfg = &envoyaccesslog.AccessLogFilter{
 			FilterSpecifier: &envoyaccesslog.AccessLogFilter_HeaderFilter{
 				HeaderFilter: &envoyaccesslog.HeaderFilter{
-					Header: &envoyroute.HeaderMatcher{
+					Header: &envoy_config_route_v3.HeaderMatcher{
 						Name:                 string(filter.HeaderFilter.Header.Name),
 						HeaderMatchSpecifier: createHeaderMatchSpecifier(filter.HeaderFilter.Header),
 					},
@@ -359,10 +359,10 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 }
 
 // Helper function to create header match specifier
-func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *envoyroute.HeaderMatcher_StringMatch {
+func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *envoy_config_route_v3.HeaderMatcher_StringMatch {
 	switch *header.Type {
 	case gwv1.HeaderMatchExact:
-		return &envoyroute.HeaderMatcher_StringMatch{
+		return &envoy_config_route_v3.HeaderMatcher_StringMatch{
 			StringMatch: &envoymatcher.StringMatcher{
 				IgnoreCase: false,
 				MatchPattern: &envoymatcher.StringMatcher_Exact{
@@ -371,7 +371,7 @@ func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *envoyroute.HeaderM
 			},
 		}
 	case gwv1.HeaderMatchRegularExpression:
-		return &envoyroute.HeaderMatcher_StringMatch{
+		return &envoy_config_route_v3.HeaderMatcher_StringMatch{
 			StringMatch: &envoymatcher.StringMatcher{
 				IgnoreCase: false,
 				MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
@@ -423,7 +423,7 @@ func generateCommonAccessLogGrpcConfig(grpcService v1alpha1.CommonAccessLogGrpcS
 	return &envoygrpc.CommonGrpcAccessLogConfig{
 		LogName:             grpcService.LogName,
 		GrpcService:         commonConfig,
-		TransportApiVersion: envoycore.ApiVersion_V3,
+		TransportApiVersion: corev3.ApiVersion_V3,
 	}, nil
 }
 
@@ -512,7 +512,7 @@ func ToOTelAnyValue(in *v1alpha1.AnyValue) *otelv1.AnyValue {
 	return nil
 }
 
-func getFormatterExtensions() ([]*envoycore.TypedExtensionConfig, error) {
+func getFormatterExtensions() ([]*corev3.TypedExtensionConfig, error) {
 	reqWithoutQueryFormatter := &envoy_req_without_query.ReqWithoutQuery{}
 	reqWithoutQueryFormatterTc, err := utils.MessageToAny(reqWithoutQueryFormatter)
 	if err != nil {
@@ -525,7 +525,7 @@ func getFormatterExtensions() ([]*envoycore.TypedExtensionConfig, error) {
 		return nil, err
 	}
 
-	return []*envoycore.TypedExtensionConfig{
+	return []*corev3.TypedExtensionConfig{
 		{
 			Name:        "envoy.formatter.req_without_query",
 			TypedConfig: reqWithoutQueryFormatterTc,

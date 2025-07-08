@@ -3,19 +3,19 @@ package bootstrap
 import (
 	"errors"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	envoyresource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 )
 
 type EnvoyResources struct {
-	Clusters  []*envoy_config_cluster_v3.Cluster
+	Clusters  []*clusterv3.Cluster
 	Listeners []*envoy_config_listener_v3.Listener
-	Secrets   []*envoy_extensions_transport_sockets_tls_v3.Secret
+	Secrets   []*envoyauth.Secret
 	// routes are only used in converting from an xds snapshot.
 	routes []*envoy_config_route_v3.RouteConfiguration
 	// endpoints are only used in converting from an xds snapshot.
@@ -64,10 +64,10 @@ func listenersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoy_config_li
 
 // clustersFromSnapshot accepts a Snapshot and extracts from it a slice of pointers to
 // the Cluster structs contained in the Snapshot.
-func clustersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoy_config_cluster_v3.Cluster, error) {
-	var clusters []*envoy_config_cluster_v3.Cluster
+func clustersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*clusterv3.Cluster, error) {
+	var clusters []*clusterv3.Cluster
 	for _, v := range snap.GetResources(envoyresource.ClusterType) {
-		c, ok := v.(*envoy_config_cluster_v3.Cluster)
+		c, ok := v.(*clusterv3.Cluster)
 		if !ok {
 			return nil, errors.New("invalid cluster type found")
 		}

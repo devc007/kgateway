@@ -6,7 +6,7 @@ import (
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/stretchr/testify/assert"
@@ -244,18 +244,18 @@ func TestXDSSnapshotsCollectionMetrics(t *testing.T) {
 							Region:  "region1",
 							Subzone: "subzone1",
 						}),
-					Endpoints: &endpointv3.ClusterLoadAssignment{
+					Endpoints: &envoy_config_endpoint_v3.ClusterLoadAssignment{
 						ClusterName: "test",
-						Endpoints: []*endpointv3.LocalityLbEndpoints{
+						Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{
 							{
 								Locality: &corev3.Locality{
 									Region:  "region1",
 									Zone:    "zone1",
 									SubZone: "subzone1",
 								},
-								LbEndpoints: []*endpointv3.LbEndpoint{{
-									HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-										Endpoint: &endpointv3.Endpoint{
+								LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{{
+									HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+										Endpoint: &envoy_config_endpoint_v3.Endpoint{
 											Address: &corev3.Address{
 												Address: &corev3.Address_SocketAddress{
 													SocketAddress: &corev3.SocketAddress{

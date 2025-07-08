@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -156,7 +156,7 @@ func buildTranslateFunc(
 				backendIr.Errors = append(backendIr.Errors, err)
 			}
 
-			var lambdaTransportSocket *envoy_config_core_v3.TransportSocket
+			var lambdaTransportSocket *corev3.TransportSocket
 			if endpointConfig.useTLS {
 				// TODO(yuval-k): Add verification context
 				typedConfig, err := utils.MessageToAny(&envoyauth.UpstreamTlsContext{
@@ -165,9 +165,9 @@ func buildTranslateFunc(
 				if err != nil {
 					backendIr.Errors = append(backendIr.Errors, err)
 				}
-				lambdaTransportSocket = &envoy_config_core_v3.TransportSocket{
+				lambdaTransportSocket = &corev3.TransportSocket{
 					Name: envoywellknown.TransportSocketTls,
-					ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{
+					ConfigType: &corev3.TransportSocket_TypedConfig{
 						TypedConfig: typedConfig,
 					},
 				}
@@ -251,7 +251,7 @@ func getAISecretRef(llm v1alpha1.SupportedLLMProvider) *corev1.LocalObjectRefere
 	return secretRef
 }
 
-func processBackend(ctx context.Context, in ir.BackendObjectIR, out *envoy_config_cluster_v3.Cluster) *ir.EndpointsForBackend {
+func processBackend(ctx context.Context, in ir.BackendObjectIR, out *clusterv3.Cluster) *ir.EndpointsForBackend {
 	be, ok := in.Obj.(*v1alpha1.Backend)
 	if !ok {
 		logger.Error("failed to cast backend object")
@@ -399,7 +399,7 @@ func (p *backendPlugin) HttpFilters(ctx context.Context, fc ir.FilterChainCommon
 
 // called 1 time (per envoy proxy). replaces GeneratedResources
 func (p *backendPlugin) ResourcesToAdd(ctx context.Context) ir.Resources {
-	var additionalClusters []*envoy_config_cluster_v3.Cluster
+	var additionalClusters []*clusterv3.Cluster
 	if len(p.aiGatewayEnabled) > 0 {
 		aiClusters := ai.GetAIAdditionalResources(ctx)
 		additionalClusters = append(additionalClusters, aiClusters...)

@@ -3,7 +3,7 @@ package backendtlspolicy
 import (
 	"errors"
 
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -32,8 +32,8 @@ func ResolveCommonSslConfig(cm *corev1.ConfigMap, validation *envoyauth.Certific
 	}
 
 	// TODO: should we do some validation on the CA?
-	caCrtData := envoycore.DataSource{
-		Specifier: &envoycore.DataSource_InlineString{
+	caCrtData := corev3.DataSource{
+		Specifier: &corev3.DataSource_InlineString{
 			InlineString: caCrt,
 		},
 	}

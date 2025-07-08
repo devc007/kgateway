@@ -20,13 +20,13 @@ import (
 	agentgateway "github.com/agentgateway/agentgateway/go/api"
 	"github.com/agentgateway/agentgateway/go/api/a2a"
 	"github.com/agentgateway/agentgateway/go/api/mcp"
-	envoycluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/go-logr/zapr"
 	"github.com/google/go-cmp/cmp"
 	"go.uber.org/zap"
@@ -460,8 +460,8 @@ func logKrtState(t *testing.T, msg string, kdbg *krt.DebugHandler) {
 
 type xdsDumper struct {
 	conn      *grpc.ClientConn
-	adsClient discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	dr        *discovery_v3.DiscoveryRequest
+	adsClient envoy_service_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesClient
+	dr        *envoy_service_discovery_v3.DiscoveryRequest
 	cancel    context.CancelFunc
 }
 
@@ -488,8 +488,8 @@ func newXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gwname string)
 
 	d := xdsDumper{
 		conn: conn,
-		dr: &discovery_v3.DiscoveryRequest{
-			Node: &envoycore.Node{
+		dr: &envoy_service_discovery_v3.DiscoveryRequest{
+			Node: &corev3.Node{
 				Id: "gateway.gwtest",
 				Metadata: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -500,7 +500,7 @@ func newXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gwname string)
 		},
 	}
 
-	ads := discovery_v3.NewAggregatedDiscoveryServiceClient(d.conn)
+	ads := envoy_service_discovery_v3.NewAggregatedDiscoveryServiceClient(d.conn)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30) // long timeout - just in case. we should never reach it.
 	adsClient, err := ads.StreamAggregatedResources(ctx)
 	if err != nil {
@@ -523,8 +523,8 @@ func newAgentGatewayXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gw
 
 	d := xdsDumper{
 		conn: conn,
-		dr: &discovery_v3.DiscoveryRequest{
-			Node: &envoycore.Node{
+		dr: &envoy_service_discovery_v3.DiscoveryRequest{
+			Node: &corev3.Node{
 				Id: "gateway.gwtest",
 				Metadata: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -535,7 +535,7 @@ func newAgentGatewayXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gw
 		},
 	}
 
-	ads := discovery_v3.NewAggregatedDiscoveryServiceClient(d.conn)
+	ads := envoy_service_discovery_v3.NewAggregatedDiscoveryServiceClient(d.conn)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30) // long timeout - just in case. we should never reach it.
 	adsClient, err := ads.StreamAggregatedResources(ctx)
 	if err != nil {
@@ -569,7 +569,7 @@ func (x xdsDumper) DumpAgentGateway(t *testing.T, ctx context.Context) agentGwDu
 }
 
 func (x xdsDumper) GetA2ATargets(t *testing.T, ctx context.Context) []*a2a.Target {
-	dr := proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr := proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = agentgatewaysyncer.TargetTypeA2AUrl
 	x.adsClient.Send(dr)
 	var a2aTargets []*a2a.Target
@@ -611,7 +611,7 @@ func (x xdsDumper) GetA2ATargets(t *testing.T, ctx context.Context) []*a2a.Targe
 }
 
 func (x xdsDumper) GetMcpTargets(t *testing.T, ctx context.Context) []*mcp.Target {
-	dr := proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr := proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = agentgatewaysyncer.TargetTypeMcpUrl
 	x.adsClient.Send(dr)
 	var mcpTargets []*mcp.Target
@@ -653,7 +653,7 @@ func (x xdsDumper) GetMcpTargets(t *testing.T, ctx context.Context) []*mcp.Targe
 }
 
 func (x xdsDumper) GetListeners(t *testing.T, ctx context.Context) []*agentgateway.Listener {
-	dr := proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr := proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = agentgatewaysyncer.TargetTypeListenerUrl
 	x.adsClient.Send(dr)
 	var listeners []*agentgateway.Listener
@@ -695,15 +695,15 @@ func (x xdsDumper) GetListeners(t *testing.T, ctx context.Context) []*agentgatew
 }
 
 func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
-	dr := proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr := proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = "type.googleapis.com/envoy.config.cluster.v3.Cluster"
 	x.adsClient.Send(dr)
-	dr = proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr = proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = "type.googleapis.com/envoy.config.listener.v3.Listener"
 	x.adsClient.Send(dr)
 
-	var clusters []*envoycluster.Cluster
-	var listeners []*envoylistener.Listener
+	var clusters []*clusterv3.Cluster
+	var listeners []*envoy_config_listener_v3.Listener
 	var errs error
 
 	// run this in parallel with a 5s timeout
@@ -719,7 +719,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 			t.Logf("got response: %s len: %d", dresp.GetTypeUrl(), len(dresp.GetResources()))
 			if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.cluster.v3.Cluster" {
 				for _, anyCluster := range dresp.GetResources() {
-					var cluster envoycluster.Cluster
+					var cluster clusterv3.Cluster
 					if err := anyCluster.UnmarshalTo(&cluster); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal cluster: %v", err))
 					}
@@ -728,7 +728,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 			} else if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.listener.v3.Listener" {
 				needMoreListerners := false
 				for _, anyListener := range dresp.GetResources() {
-					var listener envoylistener.Listener
+					var listener envoy_config_listener_v3.Listener
 					if err := anyListener.UnmarshalTo(&listener); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal listener: %v", err))
 					}
@@ -744,7 +744,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 					// the control plane processes the listeners
 					sent += 1
 					listeners = nil
-					dr = proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+					dr = proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 					dr.TypeUrl = "type.googleapis.com/envoy.config.listener.v3.Listener"
 					dr.VersionInfo = dresp.GetVersionInfo()
 					dr.ResponseNonce = dresp.GetNonce()
@@ -766,7 +766,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 	}
 	t.Logf("xds: found %d listeners and %d clusters", len(listeners), len(clusters))
 
-	clusterServiceNames := istioslices.MapFilter(clusters, func(c *envoycluster.Cluster) *string {
+	clusterServiceNames := istioslices.MapFilter(clusters, func(c *clusterv3.Cluster) *string {
 		if c.GetEdsClusterConfig() != nil {
 			if c.GetEdsClusterConfig().GetServiceName() != "" {
 				s := c.GetEdsClusterConfig().GetServiceName()
@@ -785,16 +785,16 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 		routenames = append(routenames, getroutesnames(l)...)
 	}
 
-	dr = proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr = proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.ResourceNames = routenames
 	dr.TypeUrl = "type.googleapis.com/envoy.config.route.v3.RouteConfiguration"
 	x.adsClient.Send(dr)
-	dr = proto.Clone(x.dr).(*discovery_v3.DiscoveryRequest)
+	dr = proto.Clone(x.dr).(*envoy_service_discovery_v3.DiscoveryRequest)
 	dr.TypeUrl = "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment"
 	dr.ResourceNames = clusterServiceNames
 	x.adsClient.Send(dr)
 
-	var endpoints []*envoyendpoint.ClusterLoadAssignment
+	var endpoints []*envoy_config_endpoint_v3.ClusterLoadAssignment
 	var routes []*envoy_config_route_v3.RouteConfiguration
 
 	done = make(chan struct{})
@@ -816,7 +816,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 				}
 			} else if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment" {
 				for _, anyCla := range dresp.GetResources() {
-					var cla envoyendpoint.ClusterLoadAssignment
+					var cla envoy_config_endpoint_v3.ClusterLoadAssignment
 					if err := anyCla.UnmarshalTo(&cla); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal cla: %v", err))
 					}
@@ -847,9 +847,9 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 }
 
 type xdsDump struct {
-	Clusters  []*envoycluster.Cluster
-	Listeners []*envoylistener.Listener
-	Endpoints []*envoyendpoint.ClusterLoadAssignment
+	Clusters  []*clusterv3.Cluster
+	Listeners []*envoy_config_listener_v3.Listener
+	Endpoints []*envoy_config_endpoint_v3.ClusterLoadAssignment
 	Routes    []*envoy_config_route_v3.RouteConfiguration
 }
 
@@ -870,7 +870,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		errs = errors.Join(errs, fmt.Errorf("expected %v routes, got %v", len(other.Routes), len(x.Routes)))
 	}
 
-	clusterset := map[string]*envoycluster.Cluster{}
+	clusterset := map[string]*clusterv3.Cluster{}
 	for _, c := range x.Clusters {
 		clusterset[c.Name] = c
 	}
@@ -895,7 +895,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		ourc.LoadAssignment = ourCla
 		otherc.LoadAssignment = otherCla
 	}
-	listenerset := map[string]*envoylistener.Listener{}
+	listenerset := map[string]*envoy_config_listener_v3.Listener{}
 	for _, c := range x.Listeners {
 		listenerset[c.Name] = c
 	}
@@ -928,7 +928,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		}
 	}
 
-	epset := map[string]*envoyendpoint.ClusterLoadAssignment{}
+	epset := map[string]*envoy_config_endpoint_v3.ClusterLoadAssignment{}
 	for _, c := range x.Endpoints {
 		epset[c.ClusterName] = c
 	}
@@ -942,7 +942,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 	return errs
 }
 
-func compareCla(c, otherc *envoyendpoint.ClusterLoadAssignment) error {
+func compareCla(c, otherc *envoy_config_endpoint_v3.ClusterLoadAssignment) error {
 	if (c == nil) != (otherc == nil) {
 		if c == nil {
 			return fmt.Errorf("cluster is nil")
@@ -969,12 +969,12 @@ func compareCla(c, otherc *envoyendpoint.ClusterLoadAssignment) error {
 	return nil
 }
 
-func equalset(a, b []*envoyendpoint.LocalityLbEndpoints) bool {
+func equalset(a, b []*envoy_config_endpoint_v3.LocalityLbEndpoints) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for _, v := range a {
-		if istioslices.FindFunc(b, func(e *envoyendpoint.LocalityLbEndpoints) bool {
+		if istioslices.FindFunc(b, func(e *envoy_config_endpoint_v3.LocalityLbEndpoints) bool {
 			return proto.Equal(v, e)
 		}) == nil {
 			return false
@@ -983,12 +983,12 @@ func equalset(a, b []*envoyendpoint.LocalityLbEndpoints) bool {
 	return true
 }
 
-func flattenendpoints(v *envoyendpoint.ClusterLoadAssignment) []*envoyendpoint.LocalityLbEndpoints {
-	var flat []*envoyendpoint.LocalityLbEndpoints
+func flattenendpoints(v *envoy_config_endpoint_v3.ClusterLoadAssignment) []*envoy_config_endpoint_v3.LocalityLbEndpoints {
+	var flat []*envoy_config_endpoint_v3.LocalityLbEndpoints
 	for _, e := range v.Endpoints {
 		for _, l := range e.LbEndpoints {
-			flatbase := proto.Clone(e).(*envoyendpoint.LocalityLbEndpoints)
-			flatbase.LbEndpoints = []*envoyendpoint.LbEndpoint{l}
+			flatbase := proto.Clone(e).(*envoy_config_endpoint_v3.LocalityLbEndpoints)
+			flatbase.LbEndpoints = []*envoy_config_endpoint_v3.LbEndpoint{l}
 			flat = append(flat, flatbase)
 		}
 	}
@@ -1007,21 +1007,21 @@ func (x *xdsDump) FromYaml(ya []byte) error {
 		return err
 	}
 	for _, c := range jsonM["clusters"] {
-		r, err := anyJsonRoundTrip[envoycluster.Cluster](c)
+		r, err := anyJsonRoundTrip[clusterv3.Cluster](c)
 		if err != nil {
 			return err
 		}
 		x.Clusters = append(x.Clusters, r)
 	}
 	for _, c := range jsonM["endpoints"] {
-		r, err := anyJsonRoundTrip[envoyendpoint.ClusterLoadAssignment](c)
+		r, err := anyJsonRoundTrip[envoy_config_endpoint_v3.ClusterLoadAssignment](c)
 		if err != nil {
 			return err
 		}
 		x.Endpoints = append(x.Endpoints, r)
 	}
 	for _, c := range jsonM["listeners"] {
-		r, err := anyJsonRoundTrip[envoylistener.Listener](c)
+		r, err := anyJsonRoundTrip[envoy_config_listener_v3.Listener](c)
 		if err != nil {
 			return err
 		}
@@ -1119,7 +1119,7 @@ func protoJsonRoundTrip(c proto.Message) (any, error) {
 	return roundtrip, nil
 }
 
-func getroutesnames(l *envoylistener.Listener) []string {
+func getroutesnames(l *envoy_config_listener_v3.Listener) []string {
 	var routes []string
 	for _, fc := range l.GetFilterChains() {
 		for _, filter := range fc.GetFilters() {
@@ -1127,7 +1127,7 @@ func getroutesnames(l *envoylistener.Listener) []string {
 			if strings.HasSuffix(filter.GetTypedConfig().GetTypeUrl(), suffix) {
 				var hcm envoyhttp.HttpConnectionManager
 				switch config := filter.GetConfigType().(type) {
-				case *envoylistener.Filter_TypedConfig:
+				case *envoy_config_listener_v3.Filter_TypedConfig:
 					if err := config.TypedConfig.UnmarshalTo(&hcm); err == nil {
 						rds := hcm.GetRds().GetRouteConfigName()
 						if rds != "" {

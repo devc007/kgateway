@@ -3,7 +3,7 @@ package proxy_syncer_test
 import (
 	"testing"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
@@ -27,7 +27,7 @@ func mustAny(src proto.Message) *anypb.Any {
 func TestRedacted(t *testing.T) {
 	UseDetailedUnmarshalling = true
 	g := gomega.NewWithT(t)
-	c := &envoy_config_cluster_v3.Cluster{
+	c := &clusterv3.Cluster{
 		TransportSocket: &corev3.TransportSocket{
 			Name: "foo",
 			ConfigType: &corev3.TransportSocket_TypedConfig{

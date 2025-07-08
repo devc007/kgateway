@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoytransformation "github.com/solo-io/envoy-gloo/go/config/filter/http/transformation/v2"
@@ -55,7 +55,7 @@ func TestApplyAIBackend(t *testing.T) {
 				wellknown.AIExtProcFilterName: &envoy_ext_proc_v3.ExtProcPerRoute{
 					Override: &envoy_ext_proc_v3.ExtProcPerRoute_Overrides{
 						Overrides: &envoy_ext_proc_v3.ExtProcOverrides{
-							GrpcInitialMetadata: []*envoy_config_core_v3.HeaderValue{
+							GrpcInitialMetadata: []*corev3.HeaderValue{
 								{
 									Key:   "x-llm-provider",
 									Value: "openai",
@@ -138,7 +138,7 @@ func TestApplyAIBackend(t *testing.T) {
 				wellknown.AIExtProcFilterName: &envoy_ext_proc_v3.ExtProcPerRoute{
 					Override: &envoy_ext_proc_v3.ExtProcPerRoute_Overrides{
 						Overrides: &envoy_ext_proc_v3.ExtProcOverrides{
-							GrpcInitialMetadata: []*envoy_config_core_v3.HeaderValue{
+							GrpcInitialMetadata: []*corev3.HeaderValue{
 								{
 									Key:   "x-llm-provider",
 									Value: "openai",

@@ -12,12 +12,12 @@ import (
 	"os"
 
 	"github.com/avast/retry-go"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	cache_types "github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	server "github.com/envoyproxy/go-control-plane/pkg/server/v3"
+	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	xdsserver "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/solo-io/go-utils/hashutils"
 	"google.golang.org/grpc"
 )
@@ -45,11 +45,11 @@ type Server struct {
 	sdsClient     string
 	grpcServer    *grpc.Server
 	address       string
-	snapshotCache cache.SnapshotCache
+	snapshotCache envoycache.SnapshotCache
 }
 
 // ID needed for snapshotCache
-func (s *Server) ID(_ *envoy_config_core_v3.Node) string {
+func (s *Server) ID(_ *corev3.Node) string {
 	return s.sdsClient
 }
 
@@ -62,10 +62,10 @@ func SetupEnvoySDS(secrets []Secret, sdsClient, serverAddress string) *Server {
 		sdsClient:  sdsClient,
 		address:    serverAddress,
 	}
-	snapshotCache := cache.NewSnapshotCache(false, sdsServer, nil)
+	snapshotCache := envoycache.NewSnapshotCache(false, sdsServer, nil)
 	sdsServer.snapshotCache = snapshotCache
 
-	svr := server.NewServer(context.Background(), snapshotCache, nil)
+	svr := xdsserver.NewServer(context.Background(), snapshotCache, nil)
 
 	// register services
 	envoy_service_secret_v3.RegisterSecretDiscoveryServiceServer(grpcServer, svr)
@@ -97,7 +97,7 @@ func (s *Server) Run(ctx context.Context) (<-chan struct{}, error) {
 // UpdateSDSConfig updates with the current certs
 func (s *Server) UpdateSDSConfig(ctx context.Context) error {
 	var certs [][]byte
-	var items []cache_types.Resource
+	var items []envoycachetypes.Resource
 	for _, sec := range s.secrets {
 		key, err := readAndVerifyCert(ctx, sec.SslKeyFile)
 		if err != nil {
@@ -133,8 +133,8 @@ func (s *Server) UpdateSDSConfig(ctx context.Context) error {
 	}
 	slog.Info("updating SDS config", "client", s.sdsClient, "snapshot_version", snapshotVersion)
 
-	secretSnapshot := &cache.Snapshot{}
-	secretSnapshot.Resources[cache_types.Secret] = cache.NewResources(snapshotVersion, items)
+	secretSnapshot := &envoycache.Snapshot{}
+	secretSnapshot.Resources[envoycachetypes.Secret] = envoycache.NewResources(snapshotVersion, items)
 	return s.snapshotCache.SetSnapshot(ctx, s.sdsClient, secretSnapshot)
 }
 
@@ -199,8 +199,8 @@ func checkCert(certs []byte) bool {
 	return true
 }
 
-func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert string) cache_types.Resource {
-	tlsCert := &envoy_extensions_transport_sockets_tls_v3.TlsCertificate{
+func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert string) envoycachetypes.Resource {
+	tlsCert := &envoyauth.TlsCertificate{
 		CertificateChain: inlineBytesDataSource(certChain),
 		PrivateKey:       inlineBytesDataSource(privateKey),
 	}
@@ -210,28 +210,28 @@ func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert strin
 		tlsCert.OcspStaple = inlineBytesDataSource(ocspStaple)
 	}
 
-	return &envoy_extensions_transport_sockets_tls_v3.Secret{
+	return &envoyauth.Secret{
 		Name: serverCert,
-		Type: &envoy_extensions_transport_sockets_tls_v3.Secret_TlsCertificate{
+		Type: &envoyauth.Secret_TlsCertificate{
 			TlsCertificate: tlsCert,
 		},
 	}
 }
 
-func validationContextSecret(caCert []byte, validationContext string) cache_types.Resource {
-	return &envoy_extensions_transport_sockets_tls_v3.Secret{
+func validationContextSecret(caCert []byte, validationContext string) envoycachetypes.Resource {
+	return &envoyauth.Secret{
 		Name: validationContext,
-		Type: &envoy_extensions_transport_sockets_tls_v3.Secret_ValidationContext{
-			ValidationContext: &envoy_extensions_transport_sockets_tls_v3.CertificateValidationContext{
+		Type: &envoyauth.Secret_ValidationContext{
+			ValidationContext: &envoyauth.CertificateValidationContext{
 				TrustedCa: inlineBytesDataSource(caCert),
 			},
 		},
 	}
 }
 
-func inlineBytesDataSource(b []byte) *envoy_config_core_v3.DataSource {
-	return &envoy_config_core_v3.DataSource{
-		Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+func inlineBytesDataSource(b []byte) *corev3.DataSource {
+	return &corev3.DataSource{
+		Specifier: &corev3.DataSource_InlineBytes{
 			InlineBytes: b,
 		},
 	}

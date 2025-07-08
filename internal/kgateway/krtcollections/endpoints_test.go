@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	. "github.com/onsi/gomega"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"istio.io/istio/pkg/kube/krt"
@@ -58,14 +58,14 @@ func TestEndpointsForUpstreamOrderDoesntMatter(t *testing.T) {
 	})
 	// input
 	emd1 := ir.EndpointWithMd{
-		LbEndpoint: &endpointv3.LbEndpoint{
-			HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-				Endpoint: &endpointv3.Endpoint{
-					Address: &envoy_config_core_v3.Address{
-						Address: &envoy_config_core_v3.Address_SocketAddress{
-							SocketAddress: &envoy_config_core_v3.SocketAddress{
+		LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
+			HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+				Endpoint: &envoy_config_endpoint_v3.Endpoint{
+					Address: &corev3.Address{
+						Address: &corev3.Address_SocketAddress{
+							SocketAddress: &corev3.SocketAddress{
 								Address: "1.2.3.4",
-								PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+								PortSpecifier: &corev3.SocketAddress_PortValue{
 									PortValue: 8080,
 								},
 							},
@@ -82,14 +82,14 @@ func TestEndpointsForUpstreamOrderDoesntMatter(t *testing.T) {
 		},
 	}
 	emd2 := ir.EndpointWithMd{
-		LbEndpoint: &endpointv3.LbEndpoint{
-			HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-				Endpoint: &endpointv3.Endpoint{
-					Address: &envoy_config_core_v3.Address{
-						Address: &envoy_config_core_v3.Address_SocketAddress{
-							SocketAddress: &envoy_config_core_v3.SocketAddress{
+		LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
+			HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+				Endpoint: &envoy_config_endpoint_v3.Endpoint{
+					Address: &corev3.Address{
+						Address: &corev3.Address_SocketAddress{
+							SocketAddress: &corev3.SocketAddress{
 								Address: "1.2.3.5",
-								PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+								PortSpecifier: &corev3.SocketAddress_PortValue{
 									PortValue: 8080,
 								},
 							},
@@ -204,14 +204,14 @@ func TestEndpointsForUpstreamWithDifferentNameButSameEndpoints(t *testing.T) {
 	})
 	// input
 	emd1 := ir.EndpointWithMd{
-		LbEndpoint: &endpointv3.LbEndpoint{
-			HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-				Endpoint: &endpointv3.Endpoint{
-					Address: &envoy_config_core_v3.Address{
-						Address: &envoy_config_core_v3.Address_SocketAddress{
-							SocketAddress: &envoy_config_core_v3.SocketAddress{
+		LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
+			HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+				Endpoint: &envoy_config_endpoint_v3.Endpoint{
+					Address: &corev3.Address{
+						Address: &corev3.Address_SocketAddress{
+							SocketAddress: &corev3.SocketAddress{
 								Address: "1.2.3.4",
-								PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+								PortSpecifier: &corev3.SocketAddress_PortValue{
 									PortValue: 8080,
 								},
 							},
@@ -228,14 +228,14 @@ func TestEndpointsForUpstreamWithDifferentNameButSameEndpoints(t *testing.T) {
 		},
 	}
 	emd2 := ir.EndpointWithMd{
-		LbEndpoint: &endpointv3.LbEndpoint{
-			HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-				Endpoint: &endpointv3.Endpoint{
-					Address: &envoy_config_core_v3.Address{
-						Address: &envoy_config_core_v3.Address_SocketAddress{
-							SocketAddress: &envoy_config_core_v3.SocketAddress{
+		LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
+			HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+				Endpoint: &envoy_config_endpoint_v3.Endpoint{
+					Address: &corev3.Address{
+						Address: &corev3.Address_SocketAddress{
+							SocketAddress: &corev3.SocketAddress{
 								Address: "1.2.3.5",
-								PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+								PortSpecifier: &corev3.SocketAddress_PortValue{
 									PortValue: 8080,
 								},
 							},
@@ -373,15 +373,15 @@ func TestEndpoints(t *testing.T) {
 			result: func(us ir.BackendObjectIR) *ir.EndpointsForBackend {
 				// output
 				emd := ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.4",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 8080,
 											},
 										},
@@ -527,15 +527,15 @@ func TestEndpoints(t *testing.T) {
 					Region: "region",
 					Zone:   "zone",
 				}, ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.4",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 8080,
 											},
 										},
@@ -555,15 +555,15 @@ func TestEndpoints(t *testing.T) {
 					Region: "region",
 					Zone:   "zone2",
 				}, ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.5",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 8080,
 											},
 										},
@@ -671,15 +671,15 @@ func TestEndpoints(t *testing.T) {
 			result: func(us ir.BackendObjectIR) *ir.EndpointsForBackend {
 				// output
 				emd := ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.4",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 8080,
 											},
 										},
@@ -820,15 +820,15 @@ func TestEndpoints(t *testing.T) {
 			result: func(us ir.BackendObjectIR) *ir.EndpointsForBackend {
 				// Only one endpoint should be present after deduplication
 				emd := ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.4",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 8080,
 											},
 										},
@@ -1049,15 +1049,15 @@ func TestEndpoints(t *testing.T) {
 			result: func(us ir.BackendObjectIR) *ir.EndpointsForBackend {
 				// output
 				emd := ir.EndpointWithMd{
-					LbEndpoint: &endpointv3.LbEndpoint{
+					LbEndpoint: &envoy_config_endpoint_v3.LbEndpoint{
 						LoadBalancingWeight: wrapperspb.UInt32(1),
-						HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
-							Endpoint: &endpointv3.Endpoint{
-								Address: &envoy_config_core_v3.Address{
-									Address: &envoy_config_core_v3.Address_SocketAddress{
-										SocketAddress: &envoy_config_core_v3.SocketAddress{
+						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+							Endpoint: &envoy_config_endpoint_v3.Endpoint{
+								Address: &corev3.Address{
+									Address: &corev3.Address_SocketAddress{
+										SocketAddress: &corev3.SocketAddress{
 											Address: "1.2.3.4",
-											PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+											PortSpecifier: &corev3.SocketAddress_PortValue{
 												PortValue: 3001,
 											},
 										},

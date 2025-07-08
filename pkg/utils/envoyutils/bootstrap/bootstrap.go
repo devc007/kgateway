@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -30,7 +30,7 @@ var (
 
 func FromEnvoyResources(resources *EnvoyResources) (string, error) {
 	bootstrap := &envoy_config_bootstrap_v3.Bootstrap{
-		Node: &envoy_config_core_v3.Node{
+		Node: &corev3.Node{
 			Id:      "validation-node-id",
 			Cluster: "validation-cluster",
 		},
@@ -89,10 +89,10 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	}
 	listener := &envoy_config_listener_v3.Listener{
 		Name: "placeholder_listener",
-		Address: &envoy_config_core_v3.Address{
-			Address: &envoy_config_core_v3.Address_SocketAddress{SocketAddress: &envoy_config_core_v3.SocketAddress{
+		Address: &corev3.Address{
+			Address: &corev3.Address_SocketAddress{SocketAddress: &corev3.SocketAddress{
 				Address:       "0.0.0.0",
-				PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{PortValue: 8081},
+				PortSpecifier: &corev3.SocketAddress_PortValue{PortValue: 8081},
 			}},
 		},
 		FilterChains: []*envoy_config_listener_v3.FilterChain{
@@ -210,7 +210,7 @@ func extractRoutedClustersFromListeners(
 // clusters is mutated in this function.
 func convertToStaticClusters(
 	routedCluster map[string]struct{},
-	clusters []*envoy_config_cluster_v3.Cluster,
+	clusters []*clusterv3.Cluster,
 	endpoints []*envoy_config_endpoint_v3.ClusterLoadAssignment,
 ) {
 	for _, c := range clusters {
@@ -231,8 +231,8 @@ func convertToStaticClusters(
 				if e.GetClusterName() == clusterName {
 					c.LoadAssignment = e
 					c.EdsClusterConfig = nil
-					c.ClusterDiscoveryType = &envoy_config_cluster_v3.Cluster_Type{
-						Type: envoy_config_cluster_v3.Cluster_STRICT_DNS,
+					c.ClusterDiscoveryType = &clusterv3.Cluster_Type{
+						Type: clusterv3.Cluster_STRICT_DNS,
 					}
 				}
 			}
@@ -246,13 +246,13 @@ func convertToStaticClusters(
 // by this function.
 func addBlackholeClusters(
 	routedCluster map[string]struct{},
-	clusters []*envoy_config_cluster_v3.Cluster,
-) []*envoy_config_cluster_v3.Cluster {
+	clusters []*clusterv3.Cluster,
+) []*clusterv3.Cluster {
 	for c := range routedCluster {
-		clusters = append(clusters, &envoy_config_cluster_v3.Cluster{
+		clusters = append(clusters, &clusterv3.Cluster{
 			Name: c,
-			ClusterDiscoveryType: &envoy_config_cluster_v3.Cluster_Type{
-				Type: envoy_config_cluster_v3.Cluster_STATIC,
+			ClusterDiscoveryType: &clusterv3.Cluster_Type{
+				Type: clusterv3.Cluster_STATIC,
 			},
 			LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: c,

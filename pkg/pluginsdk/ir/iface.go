@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -60,9 +60,9 @@ type RouteBackendContext struct {
 	Backend         *BackendObjectIR
 	// TypedFilterConfig will be output on the Route or WeightedCluster level after all plugins have run
 	TypedFilterConfig       TypedFilterConfigMap
-	RequestHeadersToAdd     []*envoy_config_core_v3.HeaderValueOption
+	RequestHeadersToAdd     []*corev3.HeaderValueOption
 	RequestHeadersToRemove  []string
-	ResponseHeadersToAdd    []*envoy_config_core_v3.HeaderValueOption
+	ResponseHeadersToAdd    []*corev3.HeaderValueOption
 	ResponseHeadersToRemove []string
 }
 
@@ -187,7 +187,7 @@ func (s UnimplementedProxyTranslationPass) ResourcesToAdd(ctx context.Context) R
 }
 
 type Resources struct {
-	Clusters []*envoy_config_cluster_v3.Cluster
+	Clusters []*clusterv3.Cluster
 }
 
 type GwTranslationCtx struct{}
@@ -246,5 +246,5 @@ type PolicyRun interface {
 	// Allocate state for single listener+rotue translation pass.
 	NewGatewayTranslationPass(ctx context.Context, tctx GwTranslationCtx, reporter reports.Reporter) ProxyTranslationPass
 	// Process cluster for a backend
-	ProcessBackend(ctx context.Context, in BackendObjectIR, out *envoy_config_cluster_v3.Cluster) error
+	ProcessBackend(ctx context.Context, in BackendObjectIR, out *clusterv3.Cluster) error
 }

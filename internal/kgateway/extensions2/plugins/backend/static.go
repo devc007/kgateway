@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"net/netip"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
 )
 
-func processStatic(in *v1alpha1.StaticBackend, out *envoy_config_cluster_v3.Cluster) error {
+func processStatic(in *v1alpha1.StaticBackend, out *clusterv3.Cluster) error {
 	var hostname string
-	out.ClusterDiscoveryType = &envoy_config_cluster_v3.Cluster_Type{
-		Type: envoy_config_cluster_v3.Cluster_STATIC,
+	out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
+		Type: clusterv3.Cluster_STATIC,
 	}
 	for _, host := range in.Hosts {
 		if host.Host == "" {
@@ -51,12 +51,12 @@ func processStatic(in *v1alpha1.StaticBackend, out *envoy_config_cluster_v3.Clus
 				HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_config_endpoint_v3.Endpoint{
 						Hostname: host.Host,
-						Address: &envoy_config_core_v3.Address{
-							Address: &envoy_config_core_v3.Address_SocketAddress{
-								SocketAddress: &envoy_config_core_v3.SocketAddress{
-									Protocol: envoy_config_core_v3.SocketAddress_TCP,
+						Address: &corev3.Address{
+							Address: &corev3.Address_SocketAddress{
+								SocketAddress: &corev3.SocketAddress{
+									Protocol: corev3.SocketAddress_TCP,
 									Address:  host.Host,
-									PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+									PortSpecifier: &corev3.SocketAddress_PortValue{
 										PortValue: uint32(host.Port),
 									},
 								},
@@ -71,13 +71,13 @@ func processStatic(in *v1alpha1.StaticBackend, out *envoy_config_cluster_v3.Clus
 	// the upstream has a DNS name. We need Envoy to resolve the DNS name
 	if hostname != "" {
 		// set the type to strict dns
-		out.ClusterDiscoveryType = &envoy_config_cluster_v3.Cluster_Type{
-			Type: envoy_config_cluster_v3.Cluster_STRICT_DNS,
+		out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
+			Type: clusterv3.Cluster_STRICT_DNS,
 		}
 
 		// do we still need this?
 		//		// fix issue where ipv6 addr cannot bind
-		//		out.DnsLookupFamily = envoy_config_cluster_v3.Cluster_V4_ONLY
+		//		out.DnsLookupFamily = clusterv3.Cluster_V4_ONLY
 	}
 	return nil
 }

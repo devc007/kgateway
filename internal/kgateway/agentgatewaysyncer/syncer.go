@@ -11,7 +11,7 @@ import (
 	agentgateway "github.com/agentgateway/agentgateway/go/api"
 	"github.com/agentgateway/agentgateway/go/api/a2a"
 	"github.com/agentgateway/agentgateway/go/api/mcp"
-	envoytypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"google.golang.org/protobuf/proto"
 	"istio.io/istio/pkg/kube"
@@ -88,7 +88,7 @@ func (r agentGwXdsResources) Equals(in agentGwXdsResources) bool {
 }
 
 type envoyResourceWithName struct {
-	inner   envoytypes.ResourceWithName
+	inner   envoycachetypes.ResourceWithName
 	version uint64
 }
 
@@ -118,7 +118,7 @@ func (r envoyResourceWithCustomName) Equals(in envoyResourceWithCustomName) bool
 	return r.version == in.version
 }
 
-var _ envoytypes.ResourceWithName = envoyResourceWithCustomName{}
+var _ envoycachetypes.ResourceWithName = envoyResourceWithCustomName{}
 
 type agentGwService struct {
 	krt.Named
@@ -243,7 +243,7 @@ func (s *AgentGwSyncer) Init(krtopts krtutil.KrtOptions) {
 	// translate gateways to xds
 	s.xDS = krt.NewCollection(gatewaysCol, func(kctx krt.HandlerContext, gw ir.Gateway) *agentGwXdsResources {
 		// listeners for the agentgateway
-		agwListeners := make([]envoytypes.Resource, 0, len(gw.Listeners))
+		agwListeners := make([]envoycachetypes.Resource, 0, len(gw.Listeners))
 		var listenerVersion uint64
 		var listener *agentgateway.Listener
 		for _, gwListener := range gw.Listeners {
@@ -278,7 +278,7 @@ func (s *AgentGwSyncer) Init(krtopts krtutil.KrtOptions) {
 		// a2a services
 		a2aServiceResources := krt.Fetch(kctx, xdsA2AServices)
 		logger.Debug("found A2A resources for gateway", "total_services", len(a2aServiceResources), "resource_ref", gw.ResourceName())
-		a2aResources := make([]envoytypes.Resource, len(a2aServiceResources))
+		a2aResources := make([]envoycachetypes.Resource, len(a2aServiceResources))
 		var a2aVersion uint64
 		for i, res := range a2aServiceResources {
 			a2aVersion ^= res.version
@@ -288,7 +288,7 @@ func (s *AgentGwSyncer) Init(krtopts krtutil.KrtOptions) {
 		// mcp services
 		mcpServiceResources := krt.Fetch(kctx, xdsMcpServices)
 		logger.Debug("found MCP resources for gateway", "total_services", len(mcpServiceResources), "resource_ref", gw.ResourceName())
-		mcpResources := make([]envoytypes.Resource, len(mcpServiceResources))
+		mcpResources := make([]envoycachetypes.Resource, len(mcpServiceResources))
 		var mcpVersion uint64
 		for i, res := range mcpServiceResources {
 			mcpVersion ^= res.version
@@ -355,16 +355,16 @@ type agentGwSnapshot struct {
 	VersionMap         map[string]map[string]string
 }
 
-func (m *agentGwSnapshot) GetResources(typeURL string) map[string]envoytypes.Resource {
+func (m *agentGwSnapshot) GetResources(typeURL string) map[string]envoycachetypes.Resource {
 	resources := m.GetResourcesAndTTL(typeURL)
-	result := make(map[string]envoytypes.Resource, len(resources))
+	result := make(map[string]envoycachetypes.Resource, len(resources))
 	for k, v := range resources {
 		result[k] = v.Resource
 	}
 	return result
 }
 
-func (m *agentGwSnapshot) GetResourcesAndTTL(typeURL string) map[string]envoytypes.ResourceWithTTL {
+func (m *agentGwSnapshot) GetResourcesAndTTL(typeURL string) map[string]envoycachetypes.ResourceWithTTL {
 	switch typeURL {
 	case TargetTypeA2AUrl:
 		return m.AgentGwA2AServices.Items
@@ -399,7 +399,7 @@ func (m *agentGwSnapshot) ConstructVersionMap() error {
 	}
 
 	m.VersionMap = make(map[string]map[string]string)
-	resources := map[string]map[string]envoytypes.ResourceWithTTL{
+	resources := map[string]map[string]envoycachetypes.ResourceWithTTL{
 		TargetTypeA2AUrl:      m.AgentGwA2AServices.Items,
 		TargetTypeMcpUrl:      m.AgentGwMcpServices.Items,
 		TargetTypeListenerUrl: m.Listeners.Items,

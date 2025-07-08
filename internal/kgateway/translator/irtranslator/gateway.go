@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strconv"
 
-	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"golang.org/x/net/context"
@@ -38,7 +38,7 @@ type TranslationPassPlugins map[schema.GroupKind]*TranslationPass
 type TranslationResult struct {
 	Routes        []*envoy_config_route_v3.RouteConfiguration
 	Listeners     []*envoy_config_listener_v3.Listener
-	ExtraClusters []*envoy_config_cluster_v3.Cluster
+	ExtraClusters []*clusterv3.Cluster
 }
 
 // Translate IR to gateway. IR is self contained, so no need for krt context
