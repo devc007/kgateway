@@ -8,7 +8,7 @@ import (
 	"os"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoytransformation "github.com/solo-io/envoy-gloo/go/config/filter/http/transformation/v2"
 	"google.golang.org/protobuf/proto"
@@ -64,7 +64,7 @@ func data(s *ir.Secret) map[string][]byte {
 	return s.Data
 }
 
-func ApplyAIBackend(ir *IR, pCtx *ir.RouteBackendContext, out *envoy_config_route_v3.Route) error {
+func ApplyAIBackend(ir *IR, pCtx *ir.RouteBackendContext, out *routev3.Route) error {
 	pCtx.TypedFilterConfig.AddTypedConfig(wellknown.AIBackendTransformationFilterName, ir.Transformation)
 
 	copyBackendExtproc := proto.Clone(ir.Extproc).(*envoy_ext_proc_v3.ExtProcPerRoute)
@@ -79,12 +79,12 @@ func ApplyAIBackend(ir *IR, pCtx *ir.RouteBackendContext, out *envoy_config_rout
 	// Add things which require basic AI backend.
 	if out.GetRoute() == nil {
 		// initialize route action if not set
-		out.Action = &envoy_config_route_v3.Route_Route{
-			Route: &envoy_config_route_v3.RouteAction{},
+		out.Action = &routev3.Route_Route{
+			Route: &routev3.RouteAction{},
 		}
 	}
 	// LLM providers (open ai, etc.) expect the auto host rewrite to be set
-	out.GetRoute().HostRewriteSpecifier = &envoy_config_route_v3.RouteAction_AutoHostRewrite{
+	out.GetRoute().HostRewriteSpecifier = &routev3.RouteAction_AutoHostRewrite{
 		AutoHostRewrite: wrapperspb.Bool(true),
 	}
 

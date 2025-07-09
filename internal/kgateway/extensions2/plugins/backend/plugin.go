@@ -6,9 +6,9 @@ import (
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoywellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"istio.io/istio/pkg/config/schema/kubeclient"
 	"istio.io/istio/pkg/kube/kclient"
@@ -159,7 +159,7 @@ func buildTranslateFunc(
 			var lambdaTransportSocket *corev3.TransportSocket
 			if endpointConfig.useTLS {
 				// TODO(yuval-k): Add verification context
-				typedConfig, err := utils.MessageToAny(&envoyauth.UpstreamTlsContext{
+				typedConfig, err := utils.MessageToAny(&tlsv3.UpstreamTlsContext{
 					Sni: endpointConfig.hostname,
 				})
 				if err != nil {
@@ -341,7 +341,7 @@ func (p *backendPlugin) Name() string {
 	return ExtensionName
 }
 
-func (p *backendPlugin) ApplyForBackend(ctx context.Context, pCtx *ir.RouteBackendContext, in ir.HttpBackend, out *envoy_config_route_v3.Route) error {
+func (p *backendPlugin) ApplyForBackend(ctx context.Context, pCtx *ir.RouteBackendContext, in ir.HttpBackend, out *routev3.Route) error {
 	backend := pCtx.Backend.Obj.(*v1alpha1.Backend)
 	backendIr := pCtx.Backend.ObjIr.(*BackendIr)
 	switch backend.Spec.Type {

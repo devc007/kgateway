@@ -6,7 +6,7 @@ import (
 
 	mutation_v3 "github.com/envoyproxy/go-control-plane/envoy/config/common/mutation_rules/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	header_mutationv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_mutation/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -169,7 +169,7 @@ type ourPolicyPass struct {
 }
 
 // ApplyForRoute is called when a an HTTPRouteRule is being translated to an envoy route.
-func (s *ourPolicyPass) ApplyForRoute(ctx context.Context, pCtx *ir.RouteContext, out *envoy_config_route_v3.Route) error {
+func (s *ourPolicyPass) ApplyForRoute(ctx context.Context, pCtx *ir.RouteContext, out *routev3.Route) error {
 	// get our policy IR. Kgateway used the targetRef to attach the policy to the HTTPRoute. and now as it
 	// translates the HTTPRoute to xDS, it calls our plugin and passes the policy for the plugin's translation pass to do the
 	// policy to xDS translation.

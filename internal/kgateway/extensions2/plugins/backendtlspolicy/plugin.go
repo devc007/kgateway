@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
@@ -146,20 +146,20 @@ func buildTranslateFunc(
 		policyIr := backendTlsPolicy{
 			ct: policyCR.CreationTimestamp.Time,
 		}
-		validationContext := &envoyauth.CertificateValidationContext{}
+		validationContext := &tlsv3.CertificateValidationContext{}
 		validationContext.MatchTypedSubjectAltNames = convertSubjectAltNames(spec.Validation)
-		var tlsContextDefault *envoyauth.UpstreamTlsContext
+		var tlsContextDefault *tlsv3.UpstreamTlsContext
 		switch {
 		case ptr.Deref(spec.Validation.WellKnownCACertificates, "") == gwv1a3.WellKnownCACertificatesSystem:
-			sdsValidationCtx := &envoyauth.SdsSecretConfig{
+			sdsValidationCtx := &tlsv3.SdsSecretConfig{
 				Name: eiutils.SystemCaSecretName,
 			}
 
 			hostname := string(spec.Validation.Hostname)
-			tlsContextDefault = &envoyauth.UpstreamTlsContext{
-				CommonTlsContext: &envoyauth.CommonTlsContext{
-					ValidationContextType: &envoyauth.CommonTlsContext_CombinedValidationContext{
-						CombinedValidationContext: &envoyauth.CommonTlsContext_CombinedCertificateValidationContext{
+			tlsContextDefault = &tlsv3.UpstreamTlsContext{
+				CommonTlsContext: &tlsv3.CommonTlsContext{
+					ValidationContextType: &tlsv3.CommonTlsContext_CombinedValidationContext{
+						CombinedValidationContext: &tlsv3.CommonTlsContext_CombinedCertificateValidationContext{
 							DefaultValidationContext:         validationContext,
 							ValidationContextSdsSecretConfig: sdsValidationCtx,
 						},
@@ -208,12 +208,12 @@ func buildTranslateFunc(
 	}
 }
 
-func convertSubjectAltNames(validation gwv1a3.BackendTLSPolicyValidation) []*envoyauth.SubjectAltNameMatcher {
+func convertSubjectAltNames(validation gwv1a3.BackendTLSPolicyValidation) []*tlsv3.SubjectAltNameMatcher {
 	if len(validation.SubjectAltNames) == 0 {
 		hostname := string(validation.Hostname)
 		if hostname != "" {
-			return []*envoyauth.SubjectAltNameMatcher{{
-				SanType: envoyauth.SubjectAltNameMatcher_DNS,
+			return []*tlsv3.SubjectAltNameMatcher{{
+				SanType: tlsv3.SubjectAltNameMatcher_DNS,
 				Matcher: &envoymatcher.StringMatcher{
 					MatchPattern: &envoymatcher.StringMatcher_Exact{Exact: hostname},
 				},
@@ -221,19 +221,19 @@ func convertSubjectAltNames(validation gwv1a3.BackendTLSPolicyValidation) []*env
 		}
 	}
 
-	matchers := make([]*envoyauth.SubjectAltNameMatcher, 0, len(validation.SubjectAltNames))
+	matchers := make([]*tlsv3.SubjectAltNameMatcher, 0, len(validation.SubjectAltNames))
 	for _, san := range validation.SubjectAltNames {
 		switch san.Type {
 		case gwv1a3.HostnameSubjectAltNameType:
-			matchers = append(matchers, &envoyauth.SubjectAltNameMatcher{
-				SanType: envoyauth.SubjectAltNameMatcher_DNS,
+			matchers = append(matchers, &tlsv3.SubjectAltNameMatcher{
+				SanType: tlsv3.SubjectAltNameMatcher_DNS,
 				Matcher: &envoymatcher.StringMatcher{
 					MatchPattern: &envoymatcher.StringMatcher_Exact{Exact: string(san.Hostname)},
 				},
 			})
 		case gwv1a3.URISubjectAltNameType:
-			matchers = append(matchers, &envoyauth.SubjectAltNameMatcher{
-				SanType: envoyauth.SubjectAltNameMatcher_URI,
+			matchers = append(matchers, &tlsv3.SubjectAltNameMatcher{
+				SanType: tlsv3.SubjectAltNameMatcher_URI,
 				Matcher: &envoymatcher.StringMatcher{
 					MatchPattern: &envoymatcher.StringMatcher_Exact{Exact: string(san.URI)},
 				},

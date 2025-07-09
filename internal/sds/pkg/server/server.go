@@ -13,7 +13,7 @@ import (
 
 	"github.com/avast/retry-go"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -200,7 +200,7 @@ func checkCert(certs []byte) bool {
 }
 
 func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert string) envoycachetypes.Resource {
-	tlsCert := &envoyauth.TlsCertificate{
+	tlsCert := &tlsv3.TlsCertificate{
 		CertificateChain: inlineBytesDataSource(certChain),
 		PrivateKey:       inlineBytesDataSource(privateKey),
 	}
@@ -210,19 +210,19 @@ func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert strin
 		tlsCert.OcspStaple = inlineBytesDataSource(ocspStaple)
 	}
 
-	return &envoyauth.Secret{
+	return &tlsv3.Secret{
 		Name: serverCert,
-		Type: &envoyauth.Secret_TlsCertificate{
+		Type: &tlsv3.Secret_TlsCertificate{
 			TlsCertificate: tlsCert,
 		},
 	}
 }
 
 func validationContextSecret(caCert []byte, validationContext string) envoycachetypes.Resource {
-	return &envoyauth.Secret{
+	return &tlsv3.Secret{
 		Name: validationContext,
-		Type: &envoyauth.Secret_ValidationContext{
-			ValidationContext: &envoyauth.CertificateValidationContext{
+		Type: &tlsv3.Secret_ValidationContext{
+			ValidationContext: &tlsv3.CertificateValidationContext{
 				TrustedCa: inlineBytesDataSource(caCert),
 			},
 		},

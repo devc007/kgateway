@@ -14,9 +14,9 @@ import (
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -35,8 +35,8 @@ var _ = Describe("Static bootstrap generation", func() {
 	var (
 		listeners []*envoy_config_listener_v3.Listener
 		clusters  []*clusterv3.Cluster
-		routes    []*envoy_config_route_v3.RouteConfiguration
-		endpoints []*envoy_config_endpoint_v3.ClusterLoadAssignment
+		routes    []*routev3.RouteConfiguration
+		endpoints []*endpointv3.ClusterLoadAssignment
 	)
 	BeforeEach(func() {
 		listeners = []*envoy_config_listener_v3.Listener{}
@@ -46,17 +46,17 @@ var _ = Describe("Static bootstrap generation", func() {
 				ServiceName: "foo-eds",
 			},
 		}}
-		routes = []*envoy_config_route_v3.RouteConfiguration{{
+		routes = []*routev3.RouteConfiguration{{
 			Name: "foo-routes",
-			VirtualHosts: []*envoy_config_route_v3.VirtualHost{
+			VirtualHosts: []*routev3.VirtualHost{
 				{
 					Name:    "placeholder_host",
 					Domains: []string{"*"},
-					Routes: []*envoy_config_route_v3.Route{
+					Routes: []*routev3.Route{
 						{
-							Action: &envoy_config_route_v3.Route_Route{
-								Route: &envoy_config_route_v3.RouteAction{
-									ClusterSpecifier: &envoy_config_route_v3.RouteAction_Cluster{
+							Action: &routev3.Route_Route{
+								Route: &routev3.RouteAction{
+									ClusterSpecifier: &routev3.RouteAction_Cluster{
 										Cluster: "foo",
 									},
 								},
@@ -64,9 +64,9 @@ var _ = Describe("Static bootstrap generation", func() {
 							Name: "foo-route",
 						},
 						{
-							Action: &envoy_config_route_v3.Route_Route{
-								Route: &envoy_config_route_v3.RouteAction{
-									ClusterSpecifier: &envoy_config_route_v3.RouteAction_Cluster{
+							Action: &routev3.Route_Route{
+								Route: &routev3.RouteAction{
+									ClusterSpecifier: &routev3.RouteAction_Cluster{
 										Cluster: "bar",
 									},
 								},
@@ -78,7 +78,7 @@ var _ = Describe("Static bootstrap generation", func() {
 			},
 		},
 		}
-		endpoints = []*envoy_config_endpoint_v3.ClusterLoadAssignment{{
+		endpoints = []*endpointv3.ClusterLoadAssignment{{
 			ClusterName: "foo-eds",
 		}}
 	})
@@ -140,7 +140,7 @@ var _ = Describe("Static bootstrap generation", func() {
 						ServiceName: "foo-eds",
 					},
 				}}
-				endpoints = []*envoy_config_endpoint_v3.ClusterLoadAssignment{{
+				endpoints = []*endpointv3.ClusterLoadAssignment{{
 					ClusterName: "foo-eds",
 				}}
 			})
@@ -163,7 +163,7 @@ var _ = Describe("Static bootstrap generation", func() {
 						ServiceName: "foo-eds",
 					},
 				}}
-				endpoints = []*envoy_config_endpoint_v3.ClusterLoadAssignment{{
+				endpoints = []*endpointv3.ClusterLoadAssignment{{
 					ClusterName: "foo-eds",
 				}}
 			})
@@ -260,8 +260,8 @@ var _ = Describe("Static bootstrap generation", func() {
 												hcmAny, err := utils.MessageToAny(&envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{
 													StatPrefix: "placeholder",
 													RouteSpecifier: &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
-														RouteConfig: &envoy_config_route_v3.RouteConfiguration{
-															VirtualHosts: []*envoy_config_route_v3.VirtualHost{
+														RouteConfig: &routev3.RouteConfiguration{
+															VirtualHosts: []*routev3.VirtualHost{
 																{
 																	Name:    "placeholder_host",
 																	Domains: []string{"*"},
@@ -374,7 +374,7 @@ var _ = Describe("Static bootstrap generation", func() {
 							ClusterDiscoveryType: &clusterv3.Cluster_Type{
 								Type: clusterv3.Cluster_STRICT_DNS,
 							},
-							LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+							LoadAssignment: &endpointv3.ClusterLoadAssignment{
 								ClusterName: "foo-eds",
 							},
 						},
@@ -383,7 +383,7 @@ var _ = Describe("Static bootstrap generation", func() {
 							ClusterDiscoveryType: &clusterv3.Cluster_Type{
 								Type: clusterv3.Cluster_STATIC,
 							},
-							LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+							LoadAssignment: &endpointv3.ClusterLoadAssignment{
 								ClusterName: "bar",
 							},
 						},
@@ -407,18 +407,18 @@ var _ = Describe("Static bootstrap generation", func() {
 												hcmAny, err := utils.MessageToAny(&envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{
 													StatPrefix: "placeholder",
 													RouteSpecifier: &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
-														RouteConfig: &envoy_config_route_v3.RouteConfiguration{
+														RouteConfig: &routev3.RouteConfiguration{
 															Name: "foo-routes",
-															VirtualHosts: []*envoy_config_route_v3.VirtualHost{
+															VirtualHosts: []*routev3.VirtualHost{
 																{
 																	Name:    "placeholder_host",
 																	Domains: []string{"*"},
-																	Routes: []*envoy_config_route_v3.Route{
+																	Routes: []*routev3.Route{
 																		{
 																			Name: "foo-route",
-																			Action: &envoy_config_route_v3.Route_Route{
-																				Route: &envoy_config_route_v3.RouteAction{
-																					ClusterSpecifier: &envoy_config_route_v3.RouteAction_Cluster{
+																			Action: &routev3.Route_Route{
+																				Route: &routev3.RouteAction{
+																					ClusterSpecifier: &routev3.RouteAction_Cluster{
 																						Cluster: "foo",
 																					},
 																				},
@@ -426,9 +426,9 @@ var _ = Describe("Static bootstrap generation", func() {
 																		},
 																		{
 																			Name: "bar-route",
-																			Action: &envoy_config_route_v3.Route_Route{
-																				Route: &envoy_config_route_v3.RouteAction{
-																					ClusterSpecifier: &envoy_config_route_v3.RouteAction_Cluster{
+																			Action: &routev3.Route_Route{
+																				Route: &routev3.RouteAction{
+																					ClusterSpecifier: &routev3.RouteAction_Cluster{
 																						Cluster: "bar",
 																					},
 																				},

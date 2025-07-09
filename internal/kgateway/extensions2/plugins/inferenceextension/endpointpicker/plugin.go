@@ -7,10 +7,10 @@ import (
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	extprocv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	upstreamsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -189,7 +189,7 @@ func (p *endpointPickerPass) ApplyForBackend(
 	ctx context.Context,
 	pCtx *ir.RouteBackendContext,
 	in ir.HttpBackend,
-	out *envoy_config_route_v3.Route,
+	out *routev3.Route,
 ) error {
 	if p == nil || pCtx == nil || pCtx.Backend == nil {
 		return nil
@@ -210,13 +210,13 @@ func (p *endpointPickerPass) ApplyForBackend(
 
 	// Ensure RouteAction is initialized.
 	if out.GetRoute() == nil {
-		out.Action = &envoy_config_route_v3.Route_Route{
-			Route: &envoy_config_route_v3.RouteAction{},
+		out.Action = &routev3.Route_Route{
+			Route: &routev3.RouteAction{},
 		}
 	}
 
 	// Point the route to the ORIGINAL_DST cluster for this pool.
-	out.GetRoute().ClusterSpecifier = &envoy_config_route_v3.RouteAction_Cluster{
+	out.GetRoute().ClusterSpecifier = &routev3.RouteAction_Cluster{
 		Cluster: clusterNameOriginalDst(irPool.objMeta.GetName(), irPool.objMeta.GetNamespace()),
 	}
 
@@ -363,13 +363,13 @@ func buildExtProcCluster(pool *inferencePool) *clusterv3.Cluster {
 			Type: clusterv3.Cluster_STRICT_DNS,
 		},
 		LbPolicy: clusterv3.Cluster_LEAST_REQUEST,
-		LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+		LoadAssignment: &endpointv3.ClusterLoadAssignment{
 			ClusterName: name,
-			Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{{
-				LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{{
+			Endpoints: []*endpointv3.LocalityLbEndpoints{{
+				LbEndpoints: []*endpointv3.LbEndpoint{{
 					HealthStatus: corev3.HealthStatus_HEALTHY,
-					HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
-						Endpoint: &envoy_config_endpoint_v3.Endpoint{
+					HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
+						Endpoint: &endpointv3.Endpoint{
 							Address: &corev3.Address{
 								Address: &corev3.Address_SocketAddress{
 									SocketAddress: &corev3.SocketAddress{
@@ -391,9 +391,9 @@ func buildExtProcCluster(pool *inferencePool) *clusterv3.Cluster {
 			Name: "envoy.transport_sockets.tls",
 			ConfigType: &corev3.TransportSocket_TypedConfig{
 				TypedConfig: func() *anypb.Any {
-					tlsCtx := &envoyauth.UpstreamTlsContext{
-						CommonTlsContext: &envoyauth.CommonTlsContext{
-							ValidationContextType: &envoyauth.CommonTlsContext_ValidationContext{},
+					tlsCtx := &tlsv3.UpstreamTlsContext{
+						CommonTlsContext: &tlsv3.CommonTlsContext{
+							ValidationContextType: &tlsv3.CommonTlsContext_ValidationContext{},
 						},
 					}
 					anyTLS, _ := utils.MessageToAny(tlsCtx)

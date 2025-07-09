@@ -9,7 +9,7 @@ import (
 
 	eiutils "github.com/kgateway-dev/kgateway/v2/internal/envoyinit/pkg/utils"
 
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils"
@@ -42,15 +42,15 @@ func processDynamicForwardProxy(in *v1alpha1.DynamicForwardProxyBackend, out *cl
 	}
 
 	if in.EnableTls {
-		validationContext := &envoyauth.CertificateValidationContext{}
-		sdsValidationCtx := &envoyauth.SdsSecretConfig{
+		validationContext := &tlsv3.CertificateValidationContext{}
+		sdsValidationCtx := &tlsv3.SdsSecretConfig{
 			Name: eiutils.SystemCaSecretName,
 		}
 
-		tlsContextDefault := &envoyauth.UpstreamTlsContext{
-			CommonTlsContext: &envoyauth.CommonTlsContext{
-				ValidationContextType: &envoyauth.CommonTlsContext_CombinedValidationContext{
-					CombinedValidationContext: &envoyauth.CommonTlsContext_CombinedCertificateValidationContext{
+		tlsContextDefault := &tlsv3.UpstreamTlsContext{
+			CommonTlsContext: &tlsv3.CommonTlsContext{
+				ValidationContextType: &tlsv3.CommonTlsContext_CombinedValidationContext{
+					CombinedValidationContext: &tlsv3.CommonTlsContext_CombinedCertificateValidationContext{
 						DefaultValidationContext:         validationContext,
 						ValidationContextSdsSecretConfig: sdsValidationCtx,
 					},

@@ -13,7 +13,7 @@ import (
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	sockets_raw_buffer "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/raw_buffer/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	corev1 "k8s.io/api/core/v1"
 
@@ -128,13 +128,13 @@ func createIstioMatch(sni string) *clusterv3.Cluster_TransportSocketMatch {
 		},
 	}
 
-	sslSds := &envoyauth.UpstreamTlsContext{
+	sslSds := &tlsv3.UpstreamTlsContext{
 		Sni: sni,
-		CommonTlsContext: &envoyauth.CommonTlsContext{
+		CommonTlsContext: &tlsv3.CommonTlsContext{
 			AlpnProtocols: []string{"istio"},
-			TlsParams:     &envoyauth.TlsParameters{},
-			ValidationContextType: &envoyauth.CommonTlsContext_ValidationContextSdsSecretConfig{
-				ValidationContextSdsSecretConfig: &envoyauth.SdsSecretConfig{
+			TlsParams:     &tlsv3.TlsParameters{},
+			ValidationContextType: &tlsv3.CommonTlsContext_ValidationContextSdsSecretConfig{
+				ValidationContextSdsSecretConfig: &tlsv3.SdsSecretConfig{
 					Name: ourwellknown.IstioValidationContext,
 					SdsConfig: &corev3.ConfigSource{
 						ResourceApiVersion: corev3.ApiVersion_V3,
@@ -156,7 +156,7 @@ func createIstioMatch(sni string) *clusterv3.Cluster_TransportSocketMatch {
 					},
 				},
 			},
-			TlsCertificateSdsSecretConfigs: []*envoyauth.SdsSecretConfig{
+			TlsCertificateSdsSecretConfigs: []*tlsv3.SdsSecretConfig{
 				{
 					Name: ourwellknown.IstioCertSecret,
 					SdsConfig: &corev3.ConfigSource{

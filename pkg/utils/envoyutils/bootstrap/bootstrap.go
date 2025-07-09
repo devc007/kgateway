@@ -8,9 +8,9 @@ import (
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -59,7 +59,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	}
 
 	// Construct a vhost that contains our filter config as TypedPerFilterConfig.
-	vhosts := []*envoy_config_route_v3.VirtualHost{
+	vhosts := []*routev3.VirtualHost{
 		{
 			Name:    "placeholder_host",
 			Domains: []string{"*"},
@@ -77,7 +77,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	hcm := &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{
 		StatPrefix: "placeholder",
 		RouteSpecifier: &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
-			RouteConfig: &envoy_config_route_v3.RouteConfiguration{
+			RouteConfig: &routev3.RouteConfiguration{
 				VirtualHosts: vhosts,
 			},
 		},
@@ -158,7 +158,7 @@ func FromSnapshot(
 func extractRoutedClustersFromListeners(
 	routedCluster map[string]struct{},
 	listeners []*envoy_config_listener_v3.Listener,
-	routes []*envoy_config_route_v3.RouteConfiguration,
+	routes []*routev3.RouteConfiguration,
 ) error {
 	for _, l := range listeners {
 		for _, fc := range l.GetFilterChains() {
@@ -211,7 +211,7 @@ func extractRoutedClustersFromListeners(
 func convertToStaticClusters(
 	routedCluster map[string]struct{},
 	clusters []*clusterv3.Cluster,
-	endpoints []*envoy_config_endpoint_v3.ClusterLoadAssignment,
+	endpoints []*endpointv3.ClusterLoadAssignment,
 ) {
 	for _, c := range clusters {
 		delete(routedCluster, c.GetName())
@@ -254,9 +254,9 @@ func addBlackholeClusters(
 			ClusterDiscoveryType: &clusterv3.Cluster_Type{
 				Type: clusterv3.Cluster_STATIC,
 			},
-			LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+			LoadAssignment: &endpointv3.ClusterLoadAssignment{
 				ClusterName: c,
-				Endpoints:   []*envoy_config_endpoint_v3.LocalityLbEndpoints{},
+				Endpoints:   []*endpointv3.LocalityLbEndpoints{},
 			},
 		})
 	}
@@ -293,7 +293,7 @@ func getHcmForFilterChain(fc *envoy_config_listener_v3.FilterChain) (
 // findTargetedClusters accepts a pointer to a RouteConfiguration and a hash set of strings. It
 // finds all clusters and weighted clusters targeted by routes on the virtual hosts in the RouteConfiguration
 // and adds their names to the routedCluster hash set. routedCluster is mutated in this function.
-func findTargetedClusters(r *envoy_config_route_v3.RouteConfiguration, routedCluster map[string]struct{}) {
+func findTargetedClusters(r *routev3.RouteConfiguration, routedCluster map[string]struct{}) {
 	for _, v := range r.GetVirtualHosts() {
 		for _, r := range v.GetRoutes() {
 			if r.GetRoute() == nil {
@@ -318,7 +318,7 @@ func findTargetedClusters(r *envoy_config_route_v3.RouteConfiguration, routedClu
 func setStaticRouteConfig(
 	f *envoy_config_listener_v3.Filter,
 	hcm *envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager,
-	r *envoy_config_route_v3.RouteConfiguration,
+	r *routev3.RouteConfiguration,
 ) error {
 	hcm.RouteSpecifier = &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
 		RouteConfig: r,

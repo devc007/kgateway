@@ -8,7 +8,7 @@ import (
 
 	envoyaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyalfile "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	cel "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/filters/cel/v3"
 	envoygrpc "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/grpc/v3"
@@ -294,7 +294,7 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 		alCfg = &envoyaccesslog.AccessLogFilter{
 			FilterSpecifier: &envoyaccesslog.AccessLogFilter_HeaderFilter{
 				HeaderFilter: &envoyaccesslog.HeaderFilter{
-					Header: &envoy_config_route_v3.HeaderMatcher{
+					Header: &routev3.HeaderMatcher{
 						Name:                 string(filter.HeaderFilter.Header.Name),
 						HeaderMatchSpecifier: createHeaderMatchSpecifier(filter.HeaderFilter.Header),
 					},
@@ -359,10 +359,10 @@ func translateFilter(filter *v1alpha1.FilterType) (*envoyaccesslog.AccessLogFilt
 }
 
 // Helper function to create header match specifier
-func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *envoy_config_route_v3.HeaderMatcher_StringMatch {
+func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *routev3.HeaderMatcher_StringMatch {
 	switch *header.Type {
 	case gwv1.HeaderMatchExact:
-		return &envoy_config_route_v3.HeaderMatcher_StringMatch{
+		return &routev3.HeaderMatcher_StringMatch{
 			StringMatch: &envoymatcher.StringMatcher{
 				IgnoreCase: false,
 				MatchPattern: &envoymatcher.StringMatcher_Exact{
@@ -371,7 +371,7 @@ func createHeaderMatchSpecifier(header gwv1.HTTPHeaderMatch) *envoy_config_route
 			},
 		}
 	case gwv1.HeaderMatchRegularExpression:
-		return &envoy_config_route_v3.HeaderMatcher_StringMatch{
+		return &routev3.HeaderMatcher_StringMatch{
 			StringMatch: &envoymatcher.StringMatcher{
 				IgnoreCase: false,
 				MatchPattern: &envoymatcher.StringMatcher_SafeRegex{

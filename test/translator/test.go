@@ -13,7 +13,7 @@ import (
 	"time"
 
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -58,7 +58,7 @@ import (
 type AssertReports func(gwNN types.NamespacedName, reportsMap reports.ReportMap)
 
 type translationResult struct {
-	Routes        []*envoy_config_route_v3.RouteConfiguration
+	Routes        []*routev3.RouteConfiguration
 	Listeners     []*envoy_config_listener_v3.Listener
 	ExtraClusters []*clusterv3.Cluster
 	Clusters      []*clusterv3.Cluster
@@ -126,9 +126,9 @@ func (tr *translationResult) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(routesData, &routes); err != nil {
 			return err
 		}
-		tr.Routes = make([]*envoy_config_route_v3.RouteConfiguration, len(routes))
+		tr.Routes = make([]*routev3.RouteConfiguration, len(routes))
 		for i, routeData := range routes {
-			route := &envoy_config_route_v3.RouteConfiguration{}
+			route := &routev3.RouteConfiguration{}
 			if err := m.Unmarshal(routeData, route); err != nil {
 				return err
 			}

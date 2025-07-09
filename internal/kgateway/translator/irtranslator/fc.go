@@ -10,7 +10,7 @@ import (
 	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -453,13 +453,13 @@ func (info *FilterChainInfo) toTransportSocket() *corev3.TransportSocket {
 		return nil
 	}
 
-	common := &envoyauth.CommonTlsContext{
+	common := &tlsv3.CommonTlsContext{
 		// default params
-		TlsParams:     &envoyauth.TlsParameters{},
+		TlsParams:     &tlsv3.TlsParameters{},
 		AlpnProtocols: ssl.AlpnProtocols,
 	}
 
-	common.TlsCertificates = []*envoyauth.TlsCertificate{
+	common.TlsCertificates = []*tlsv3.TlsCertificate{
 		{
 			CertificateChain: bytesDataSource(ssl.CertChain),
 			PrivateKey:       bytesDataSource(ssl.PrivateKey),
@@ -478,7 +478,7 @@ func (info *FilterChainInfo) toTransportSocket() *corev3.TransportSocket {
 	//		common.AlpnProtocols = []string{}
 	//	}
 
-	out := &envoyauth.DownstreamTlsContext{
+	out := &tlsv3.DownstreamTlsContext{
 		CommonTlsContext: common,
 	}
 	typedConfig, _ := utils.MessageToAny(out)

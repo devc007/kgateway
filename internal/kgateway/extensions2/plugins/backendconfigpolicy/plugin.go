@@ -6,7 +6,7 @@ import (
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoywellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -41,7 +41,7 @@ type BackendConfigPolicyIR struct {
 	commonHttpProtocolOptions     *corev3.HttpProtocolOptions
 	http1ProtocolOptions          *corev3.Http1ProtocolOptions
 	http2ProtocolOptions          *corev3.Http2ProtocolOptions
-	tlsConfig                     *envoyauth.UpstreamTlsContext
+	tlsConfig                     *tlsv3.UpstreamTlsContext
 	loadBalancerConfig            *LoadBalancerConfigIR
 	healthCheck                   *corev3.HealthCheck
 }

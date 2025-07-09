@@ -8,7 +8,7 @@ import (
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -99,12 +99,12 @@ type ProxyTranslationPass interface {
 	ApplyRouteConfigPlugin(
 		ctx context.Context,
 		pCtx *RouteConfigContext,
-		out *envoy_config_route_v3.RouteConfiguration,
+		out *routev3.RouteConfiguration,
 	)
 	ApplyVhostPlugin(
 		ctx context.Context,
 		pCtx *VirtualHostContext,
-		out *envoy_config_route_v3.VirtualHost,
+		out *routev3.VirtualHost,
 	)
 	// no policy applied - this is called for every backend in a route.
 	// For this to work the backend needs to register itself as a policy. TODO: rethink this.
@@ -114,7 +114,7 @@ type ProxyTranslationPass interface {
 		ctx context.Context,
 		pCtx *RouteBackendContext,
 		in HttpBackend,
-		out *envoy_config_route_v3.Route,
+		out *routev3.Route,
 	) error
 	// Applies a policy attached to a specific Backend (via extensionRef on the BackendRef).
 	// Note: TypedFilterConfig should be applied in the pCtx and is shared between ApplyForRoute, ApplyForBackend
@@ -127,13 +127,13 @@ type ProxyTranslationPass interface {
 	// called once per route rule if SupportsPolicyMerge returns false, otherwise this is called only
 	// once on the value returned by MergePolicies.
 	// Applies policy for an HTTPRoute that has a policy attached via a targetRef.
-	// The output configures the envoy_config_route_v3.Route
+	// The output configures the routev3.Route
 	// Note: TypedFilterConfig should be applied in the pCtx and is shared between ApplyForRoute, ApplyForBackend
 	// and ApplyForRouteBacken (do not apply on the output route directly)
 	ApplyForRoute(
 		ctx context.Context,
 		pCtx *RouteContext,
-		out *envoy_config_route_v3.Route) error
+		out *routev3.Route) error
 
 	// called 1 time per filter-chain.
 	// If a plugin emits new filters, they must be with a plugin unique name.
@@ -156,17 +156,17 @@ func (s UnimplementedProxyTranslationPass) ApplyHCM(ctx context.Context, pCtx *H
 	return nil
 }
 
-func (s UnimplementedProxyTranslationPass) ApplyForBackend(ctx context.Context, pCtx *RouteBackendContext, in HttpBackend, out *envoy_config_route_v3.Route) error {
+func (s UnimplementedProxyTranslationPass) ApplyForBackend(ctx context.Context, pCtx *RouteBackendContext, in HttpBackend, out *routev3.Route) error {
 	return nil
 }
 
-func (s UnimplementedProxyTranslationPass) ApplyRouteConfigPlugin(ctx context.Context, pCtx *RouteConfigContext, out *envoy_config_route_v3.RouteConfiguration) {
+func (s UnimplementedProxyTranslationPass) ApplyRouteConfigPlugin(ctx context.Context, pCtx *RouteConfigContext, out *routev3.RouteConfiguration) {
 }
 
-func (s UnimplementedProxyTranslationPass) ApplyVhostPlugin(ctx context.Context, pCtx *VirtualHostContext, out *envoy_config_route_v3.VirtualHost) {
+func (s UnimplementedProxyTranslationPass) ApplyVhostPlugin(ctx context.Context, pCtx *VirtualHostContext, out *routev3.VirtualHost) {
 }
 
-func (s UnimplementedProxyTranslationPass) ApplyForRoute(ctx context.Context, pCtx *RouteContext, out *envoy_config_route_v3.Route) error {
+func (s UnimplementedProxyTranslationPass) ApplyForRoute(ctx context.Context, pCtx *RouteContext, out *routev3.Route) error {
 	return nil
 }
 

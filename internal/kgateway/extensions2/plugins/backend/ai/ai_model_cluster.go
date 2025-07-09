@@ -134,15 +134,15 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 	}
 
 	// Add proper certificate validation
-	validationContext := &envoyauth.CertificateValidationContext{}
-	sdsValidationCtx := &envoyauth.SdsSecretConfig{
+	validationContext := &tlsv3.CertificateValidationContext{}
+	sdsValidationCtx := &tlsv3.SdsSecretConfig{
 		Name: eiutils.SystemCaSecretName,
 	}
 
-	tlsContextDefault := &envoyauth.UpstreamTlsContext{
-		CommonTlsContext: &envoyauth.CommonTlsContext{
-			ValidationContextType: &envoyauth.CommonTlsContext_CombinedValidationContext{
-				CombinedValidationContext: &envoyauth.CommonTlsContext_CombinedCertificateValidationContext{
+	tlsContextDefault := &tlsv3.UpstreamTlsContext{
+		CommonTlsContext: &tlsv3.CommonTlsContext{
+			ValidationContextType: &tlsv3.CommonTlsContext_CombinedValidationContext{
+				CombinedValidationContext: &tlsv3.CommonTlsContext_CombinedCertificateValidationContext{
 					DefaultValidationContext:         validationContext,
 					ValidationContextSdsSecretConfig: sdsValidationCtx,
 				},
@@ -167,8 +167,8 @@ func buildModelCluster(aiUs *v1alpha1.AIBackend, aiSecret *ir.Secret, multiSecre
 
 	// Skip verification if explicitly requested
 	// Note: We don't set ValidationContextType at all, which effectively disables verification
-	tlsContextSkipValidation := &envoyauth.UpstreamTlsContext{
-		CommonTlsContext: &envoyauth.CommonTlsContext{},
+	tlsContextSkipValidation := &tlsv3.UpstreamTlsContext{
+		CommonTlsContext: &tlsv3.CommonTlsContext{},
 		AutoHostSni:      true,
 	}
 	tlsCtxSkipValidationAny, err := utils.MessageToAny(tlsContextSkipValidation)

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoytransformation "github.com/solo-io/envoy-gloo/go/config/filter/http/transformation/v2"
 	"google.golang.org/protobuf/proto"
@@ -23,14 +23,14 @@ func TestApplyAIBackend(t *testing.T) {
 	customHeader := "custom-header "
 	customPrefix := "custom-prefix "
 
-	outRoute := &envoy_config_route_v3.Route{}
+	outRoute := &routev3.Route{}
 
 	tests := []struct {
 		name                string
 		aiBackend           *v1alpha1.AIBackend
 		pCtx                *ir.RouteBackendContext
 		in                  ir.HttpBackend
-		out                 *envoy_config_route_v3.Route
+		out                 *routev3.Route
 		expectedError       string
 		expectedTypedConfig *map[string]proto.Message
 	}{

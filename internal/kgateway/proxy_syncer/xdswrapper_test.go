@@ -5,7 +5,7 @@ import (
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/onsi/gomega"
@@ -31,9 +31,9 @@ func TestRedacted(t *testing.T) {
 		TransportSocket: &corev3.TransportSocket{
 			Name: "foo",
 			ConfigType: &corev3.TransportSocket_TypedConfig{
-				TypedConfig: mustAny(&envoyauth.UpstreamTlsContext{
-					CommonTlsContext: &envoyauth.CommonTlsContext{
-						TlsCertificates: []*envoyauth.TlsCertificate{
+				TypedConfig: mustAny(&tlsv3.UpstreamTlsContext{
+					CommonTlsContext: &tlsv3.CommonTlsContext{
+						TlsCertificates: []*tlsv3.TlsCertificate{
 							{
 								PrivateKey: &corev3.DataSource{
 									Specifier: &corev3.DataSource_InlineString{
