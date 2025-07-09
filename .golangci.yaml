@@ -69,7 +69,7 @@ linters:
         - pkg: github.com/envoyproxy/go-control-plane/pkg/cache/types
           alias: envoycachetypes
         - pkg: github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
-          alias: tlsv3
+          alias: envoytlsv3
         - pkg:  github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
           alias: envoyclusterv3
         - pkg: github.com/envoyproxy/go-control-plane/envoy/config/route/v3

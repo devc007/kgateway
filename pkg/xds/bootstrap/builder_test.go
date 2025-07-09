@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	envoy_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	envoy_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/google/go-cmp/cmp"
 )
@@ -53,7 +53,7 @@ func TestConfigBuilder_Build(t *testing.T) {
 		{
 			name: "with clusters",
 			setup: func(b *ConfigBuilder) {
-				b.clusters = []*envoy_cluster.Cluster{{Name: "test_cluster"}}
+				b.clusters = []*envoyclusterv3.Cluster{{Name: "test_cluster"}}
 			},
 			validate: func(t *testing.T, got *envoy_bootstrap.Bootstrap) {
 				want := 1

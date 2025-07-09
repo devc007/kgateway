@@ -24,7 +24,7 @@ import (
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/go-logr/zapr"
@@ -795,7 +795,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 	x.adsClient.Send(dr)
 
 	var endpoints []*envoyendpointv3.ClusterLoadAssignment
-	var routes []*envoy_config_route_v3.RouteConfiguration
+	var routes []*envoyroutev3.RouteConfiguration
 
 	done = make(chan struct{})
 	go func() {
@@ -808,7 +808,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 			t.Logf("got response: %s len: %d", dresp.GetTypeUrl(), len(dresp.GetResources()))
 			if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.route.v3.RouteConfiguration" {
 				for _, anyRoute := range dresp.GetResources() {
-					var route envoy_config_route_v3.RouteConfiguration
+					var route envoyroutev3.RouteConfiguration
 					if err := anyRoute.UnmarshalTo(&route); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal route: %v", err))
 					}
@@ -850,7 +850,7 @@ type xdsDump struct {
 	Clusters  []*envoyclusterv3.Cluster
 	Listeners []*envoy_config_listener_v3.Listener
 	Endpoints []*envoyendpointv3.ClusterLoadAssignment
-	Routes    []*envoy_config_route_v3.RouteConfiguration
+	Routes    []*envoyroutev3.RouteConfiguration
 }
 
 func (x *xdsDump) Compare(other xdsDump) error {
@@ -909,7 +909,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 			errs = errors.Join(errs, fmt.Errorf("listener %v not equal", c.Name))
 		}
 	}
-	routeset := map[string]*envoy_config_route_v3.RouteConfiguration{}
+	routeset := map[string]*envoyroutev3.RouteConfiguration{}
 	for _, c := range x.Routes {
 		routeset[c.Name] = c
 	}
@@ -921,7 +921,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		}
 
 		// Ignore VirtualHost ordering
-		vhostFn := func(x, y *envoy_config_route_v3.VirtualHost) bool { return x.Name < y.Name }
+		vhostFn := func(x, y *envoyroutev3.VirtualHost) bool { return x.Name < y.Name }
 		if diff := cmp.Diff(c, otherc, protocmp.Transform(),
 			protocmp.SortRepeated(vhostFn)); diff != "" {
 			errs = errors.Join(errs, fmt.Errorf("route %v not equal!\ndiff:\b%s\n", c.Name, diff))
@@ -1028,7 +1028,7 @@ func (x *xdsDump) FromYaml(ya []byte) error {
 		x.Listeners = append(x.Listeners, r)
 	}
 	for _, c := range jsonM["routes"] {
-		r, err := anyJsonRoundTrip[envoy_config_route_v3.RouteConfiguration](c)
+		r, err := anyJsonRoundTrip[envoyroutev3.RouteConfiguration](c)
 		if err != nil {
 			return err
 		}
