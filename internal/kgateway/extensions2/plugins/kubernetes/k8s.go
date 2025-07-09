@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/network"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/ptr"
@@ -87,15 +87,15 @@ func BuildServiceBackendObjectIR(svc *corev1.Service, svcPort int32, svcProtocol
 	return backend
 }
 
-func processBackend(ctx context.Context, in ir.BackendObjectIR, out *clusterv3.Cluster) *ir.EndpointsForBackend {
-	out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
-		Type: clusterv3.Cluster_EDS,
+func processBackend(ctx context.Context, in ir.BackendObjectIR, out *envoyclusterv3.Cluster) *ir.EndpointsForBackend {
+	out.ClusterDiscoveryType = &envoyclusterv3.Cluster_Type{
+		Type: envoyclusterv3.Cluster_EDS,
 	}
-	out.EdsClusterConfig = &clusterv3.Cluster_EdsClusterConfig{
-		EdsConfig: &corev3.ConfigSource{
-			ResourceApiVersion: corev3.ApiVersion_V3,
-			ConfigSourceSpecifier: &corev3.ConfigSource_Ads{
-				Ads: &corev3.AggregatedConfigSource{},
+	out.EdsClusterConfig = &envoyclusterv3.Cluster_EdsClusterConfig{
+		EdsConfig: &envoycorev3.ConfigSource{
+			ResourceApiVersion: envoycorev3.ApiVersion_V3,
+			ConfigSourceSpecifier: &envoycorev3.ConfigSource_Ads{
+				Ads: &envoycorev3.AggregatedConfigSource{},
 			},
 		},
 	}

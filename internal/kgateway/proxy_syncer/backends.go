@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"istio.io/istio/pkg/kube/krt"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
@@ -15,7 +15,7 @@ import (
 
 type uccWithCluster struct {
 	Client         ir.UniqlyConnectedClient
-	Cluster        *clusterv3.Cluster
+	Cluster        *envoyclusterv3.Cluster
 	ClusterVersion uint64
 	Name           string
 	Error          error

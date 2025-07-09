@@ -3,8 +3,8 @@ package backendtlspolicy
 import (
 	"errors"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -13,37 +13,37 @@ import (
 
 var noKeyFoundMsg = "no key ca.crt found"
 
-func ResolveUpstreamSslConfig(cm *corev1.ConfigMap, validation *tlsv3.CertificateValidationContext, sni string) (*tlsv3.UpstreamTlsContext, error) {
+func ResolveUpstreamSslConfig(cm *corev1.ConfigMap, validation *envoytlsv3.CertificateValidationContext, sni string) (*envoytlsv3.UpstreamTlsContext, error) {
 	common, err := ResolveCommonSslConfig(cm, validation, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return &tlsv3.UpstreamTlsContext{
+	return &envoytlsv3.UpstreamTlsContext{
 		CommonTlsContext: common,
 		Sni:              sni,
 	}, nil
 }
 
-func ResolveCommonSslConfig(cm *corev1.ConfigMap, validation *tlsv3.CertificateValidationContext, mustHaveCert bool) (*tlsv3.CommonTlsContext, error) {
+func ResolveCommonSslConfig(cm *corev1.ConfigMap, validation *envoytlsv3.CertificateValidationContext, mustHaveCert bool) (*envoytlsv3.CommonTlsContext, error) {
 	caCrt, err := getSslSecrets(cm)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: should we do some validation on the CA?
-	caCrtData := corev3.DataSource{
-		Specifier: &corev3.DataSource_InlineString{
+	caCrtData := envoycorev3.DataSource{
+		Specifier: &envoycorev3.DataSource_InlineString{
 			InlineString: caCrt,
 		},
 	}
 
-	tlsContext := &tlsv3.CommonTlsContext{
+	tlsContext := &envoytlsv3.CommonTlsContext{
 		// default params
-		TlsParams: &tlsv3.TlsParameters{},
+		TlsParams: &envoytlsv3.TlsParameters{},
 	}
 	validation.TrustedCa = &caCrtData
-	validationCtx := &tlsv3.CommonTlsContext_ValidationContext{
+	validationCtx := &envoytlsv3.CommonTlsContext_ValidationContext{
 		ValidationContext: validation,
 	}
 

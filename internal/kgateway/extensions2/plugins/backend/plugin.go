@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoywellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"istio.io/istio/pkg/config/schema/kubeclient"
 	"istio.io/istio/pkg/kube/kclient"
@@ -156,18 +156,18 @@ func buildTranslateFunc(
 				backendIr.Errors = append(backendIr.Errors, err)
 			}
 
-			var lambdaTransportSocket *corev3.TransportSocket
+			var lambdaTransportSocket *envoycorev3.TransportSocket
 			if endpointConfig.useTLS {
 				// TODO(yuval-k): Add verification context
-				typedConfig, err := utils.MessageToAny(&tlsv3.UpstreamTlsContext{
+				typedConfig, err := utils.MessageToAny(&envoytlsv3.UpstreamTlsContext{
 					Sni: endpointConfig.hostname,
 				})
 				if err != nil {
 					backendIr.Errors = append(backendIr.Errors, err)
 				}
-				lambdaTransportSocket = &corev3.TransportSocket{
+				lambdaTransportSocket = &envoycorev3.TransportSocket{
 					Name: envoywellknown.TransportSocketTls,
-					ConfigType: &corev3.TransportSocket_TypedConfig{
+					ConfigType: &envoycorev3.TransportSocket_TypedConfig{
 						TypedConfig: typedConfig,
 					},
 				}
@@ -251,7 +251,7 @@ func getAISecretRef(llm v1alpha1.SupportedLLMProvider) *corev1.LocalObjectRefere
 	return secretRef
 }
 
-func processBackend(ctx context.Context, in ir.BackendObjectIR, out *clusterv3.Cluster) *ir.EndpointsForBackend {
+func processBackend(ctx context.Context, in ir.BackendObjectIR, out *envoyclusterv3.Cluster) *ir.EndpointsForBackend {
 	be, ok := in.Obj.(*v1alpha1.Backend)
 	if !ok {
 		logger.Error("failed to cast backend object")
@@ -341,7 +341,7 @@ func (p *backendPlugin) Name() string {
 	return ExtensionName
 }
 
-func (p *backendPlugin) ApplyForBackend(ctx context.Context, pCtx *ir.RouteBackendContext, in ir.HttpBackend, out *routev3.Route) error {
+func (p *backendPlugin) ApplyForBackend(ctx context.Context, pCtx *ir.RouteBackendContext, in ir.HttpBackend, out *envoyroutev3.Route) error {
 	backend := pCtx.Backend.Obj.(*v1alpha1.Backend)
 	backendIr := pCtx.Backend.ObjIr.(*BackendIr)
 	switch backend.Spec.Type {
@@ -399,7 +399,7 @@ func (p *backendPlugin) HttpFilters(ctx context.Context, fc ir.FilterChainCommon
 
 // called 1 time (per envoy proxy). replaces GeneratedResources
 func (p *backendPlugin) ResourcesToAdd(ctx context.Context) ir.Resources {
-	var additionalClusters []*clusterv3.Cluster
+	var additionalClusters []*envoyclusterv3.Cluster
 	if len(p.aiGatewayEnabled) > 0 {
 		aiClusters := ai.GetAIAdditionalResources(ctx)
 		additionalClusters = append(additionalClusters, aiClusters...)

@@ -1,7 +1,7 @@
 package httplistenerpolicy
 
 import (
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
@@ -9,8 +9,8 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils"
 )
 
-func ToEnvoyGrpc(in v1alpha1.CommonGrpcService, backend *ir.BackendObjectIR) (*corev3.GrpcService, error) {
-	envoyGrpcService := &corev3.GrpcService_EnvoyGrpc{
+func ToEnvoyGrpc(in v1alpha1.CommonGrpcService, backend *ir.BackendObjectIR) (*envoycorev3.GrpcService, error) {
+	envoyGrpcService := &envoycorev3.GrpcService_EnvoyGrpc{
 		ClusterName: backend.ClusterName(),
 	}
 	if in.Authority != nil {
@@ -24,8 +24,8 @@ func ToEnvoyGrpc(in v1alpha1.CommonGrpcService, backend *ir.BackendObjectIR) (*c
 	if in.SkipEnvoyHeaders != nil {
 		envoyGrpcService.SkipEnvoyHeaders = *in.SkipEnvoyHeaders
 	}
-	grpcService := &corev3.GrpcService{
-		TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+	grpcService := &envoycorev3.GrpcService{
+		TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 			EnvoyGrpc: envoyGrpcService,
 		},
 	}
@@ -34,23 +34,23 @@ func ToEnvoyGrpc(in v1alpha1.CommonGrpcService, backend *ir.BackendObjectIR) (*c
 		grpcService.Timeout = utils.DurationToProto(in.Timeout.Duration)
 	}
 	if in.InitialMetadata != nil {
-		grpcService.InitialMetadata = make([]*corev3.HeaderValue, len(in.InitialMetadata))
+		grpcService.InitialMetadata = make([]*envoycorev3.HeaderValue, len(in.InitialMetadata))
 		for i, metadata := range in.InitialMetadata {
-			grpcService.GetInitialMetadata()[i] = &corev3.HeaderValue{
+			grpcService.GetInitialMetadata()[i] = &envoycorev3.HeaderValue{
 				Key:   metadata.Key,
 				Value: metadata.Value,
 			}
 		}
 	}
 	if in.RetryPolicy != nil {
-		retryPolicy := &corev3.RetryPolicy{}
+		retryPolicy := &envoycorev3.RetryPolicy{}
 		if in.RetryPolicy.NumRetries != nil {
 			retryPolicy.NumRetries = &wrapperspb.UInt32Value{
 				Value: *in.RetryPolicy.NumRetries,
 			}
 		}
 		if in.RetryPolicy.RetryBackOff != nil {
-			retryPolicy.RetryBackOff = &corev3.BackoffStrategy{
+			retryPolicy.RetryBackOff = &envoycorev3.BackoffStrategy{
 				BaseInterval: utils.DurationToProto(in.RetryPolicy.RetryBackOff.BaseInterval.Duration),
 			}
 			if in.RetryPolicy.RetryBackOff.MaxInterval != nil {

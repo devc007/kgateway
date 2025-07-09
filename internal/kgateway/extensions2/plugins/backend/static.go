@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"net/netip"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
 )
 
-func processStatic(in *v1alpha1.StaticBackend, out *clusterv3.Cluster) error {
+func processStatic(in *v1alpha1.StaticBackend, out *envoyclusterv3.Cluster) error {
 	var hostname string
-	out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
-		Type: clusterv3.Cluster_STATIC,
+	out.ClusterDiscoveryType = &envoyclusterv3.Cluster_Type{
+		Type: envoyclusterv3.Cluster_STATIC,
 	}
 	for _, host := range in.Hosts {
 		if host.Host == "" {
@@ -35,28 +35,28 @@ func processStatic(in *v1alpha1.StaticBackend, out *clusterv3.Cluster) error {
 		}
 
 		if out.GetLoadAssignment() == nil {
-			out.LoadAssignment = &envoy_config_endpoint_v3.ClusterLoadAssignment{
+			out.LoadAssignment = &envoyendpointv3.ClusterLoadAssignment{
 				ClusterName: out.GetName(),
-				Endpoints:   []*envoy_config_endpoint_v3.LocalityLbEndpoints{{}},
+				Endpoints:   []*envoyendpointv3.LocalityLbEndpoints{{}},
 			}
 		}
 
-		healthCheckConfig := &envoy_config_endpoint_v3.Endpoint_HealthCheckConfig{
+		healthCheckConfig := &envoyendpointv3.Endpoint_HealthCheckConfig{
 			Hostname: host.Host,
 		}
 
 		out.GetLoadAssignment().GetEndpoints()[0].LbEndpoints = append(out.GetLoadAssignment().GetEndpoints()[0].GetLbEndpoints(),
-			&envoy_config_endpoint_v3.LbEndpoint{
+			&envoyendpointv3.LbEndpoint{
 				//	Metadata: getMetadata(params.Ctx, spec, host),
-				HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
-					Endpoint: &envoy_config_endpoint_v3.Endpoint{
+				HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
+					Endpoint: &envoyendpointv3.Endpoint{
 						Hostname: host.Host,
-						Address: &corev3.Address{
-							Address: &corev3.Address_SocketAddress{
-								SocketAddress: &corev3.SocketAddress{
-									Protocol: corev3.SocketAddress_TCP,
+						Address: &envoycorev3.Address{
+							Address: &envoycorev3.Address_SocketAddress{
+								SocketAddress: &envoycorev3.SocketAddress{
+									Protocol: envoycorev3.SocketAddress_TCP,
 									Address:  host.Host,
-									PortSpecifier: &corev3.SocketAddress_PortValue{
+									PortSpecifier: &envoycorev3.SocketAddress_PortValue{
 										PortValue: uint32(host.Port),
 									},
 								},
@@ -71,13 +71,13 @@ func processStatic(in *v1alpha1.StaticBackend, out *clusterv3.Cluster) error {
 	// the upstream has a DNS name. We need Envoy to resolve the DNS name
 	if hostname != "" {
 		// set the type to strict dns
-		out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
-			Type: clusterv3.Cluster_STRICT_DNS,
+		out.ClusterDiscoveryType = &envoyclusterv3.Cluster_Type{
+			Type: envoyclusterv3.Cluster_STRICT_DNS,
 		}
 
 		// do we still need this?
 		//		// fix issue where ipv6 addr cannot bind
-		//		out.DnsLookupFamily = clusterv3.Cluster_V4_ONLY
+		//		out.DnsLookupFamily = envoyclusterv3.Cluster_V4_ONLY
 	}
 	return nil
 }

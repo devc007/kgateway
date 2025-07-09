@@ -12,8 +12,8 @@ import (
 	"os"
 
 	"github.com/avast/retry-go"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	envoycachetypes "github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -49,7 +49,7 @@ type Server struct {
 }
 
 // ID needed for snapshotCache
-func (s *Server) ID(_ *corev3.Node) string {
+func (s *Server) ID(_ *envoycorev3.Node) string {
 	return s.sdsClient
 }
 
@@ -200,7 +200,7 @@ func checkCert(certs []byte) bool {
 }
 
 func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert string) envoycachetypes.Resource {
-	tlsCert := &tlsv3.TlsCertificate{
+	tlsCert := &envoytlsv3.TlsCertificate{
 		CertificateChain: inlineBytesDataSource(certChain),
 		PrivateKey:       inlineBytesDataSource(privateKey),
 	}
@@ -210,28 +210,28 @@ func serverCertSecret(privateKey, certChain, ocspStaple []byte, serverCert strin
 		tlsCert.OcspStaple = inlineBytesDataSource(ocspStaple)
 	}
 
-	return &tlsv3.Secret{
+	return &envoytlsv3.Secret{
 		Name: serverCert,
-		Type: &tlsv3.Secret_TlsCertificate{
+		Type: &envoytlsv3.Secret_TlsCertificate{
 			TlsCertificate: tlsCert,
 		},
 	}
 }
 
 func validationContextSecret(caCert []byte, validationContext string) envoycachetypes.Resource {
-	return &tlsv3.Secret{
+	return &envoytlsv3.Secret{
 		Name: validationContext,
-		Type: &tlsv3.Secret_ValidationContext{
-			ValidationContext: &tlsv3.CertificateValidationContext{
+		Type: &envoytlsv3.Secret_ValidationContext{
+			ValidationContext: &envoytlsv3.CertificateValidationContext{
 				TrustedCa: inlineBytesDataSource(caCert),
 			},
 		},
 	}
 }
 
-func inlineBytesDataSource(b []byte) *corev3.DataSource {
-	return &corev3.DataSource{
-		Specifier: &corev3.DataSource_InlineBytes{
+func inlineBytesDataSource(b []byte) *envoycorev3.DataSource {
+	return &envoycorev3.DataSource{
+		Specifier: &envoycorev3.DataSource_InlineBytes{
 			InlineBytes: b,
 		},
 	}

@@ -3,23 +3,23 @@ package pluginutils
 import (
 	"fmt"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils"
 )
 
-func EnvoySingleEndpointLoadAssignment(out *clusterv3.Cluster, address string, port uint32) {
-	out.LoadAssignment = &envoy_config_endpoint_v3.ClusterLoadAssignment{
+func EnvoySingleEndpointLoadAssignment(out *envoyclusterv3.Cluster, address string, port uint32) {
+	out.LoadAssignment = &envoyendpointv3.ClusterLoadAssignment{
 		ClusterName: out.GetName(),
-		Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{
+		Endpoints: []*envoyendpointv3.LocalityLbEndpoints{
 			{
-				LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+				LbEndpoints: []*envoyendpointv3.LbEndpoint{
 					{
-						HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: EnvoyEndpoint(address, port),
 						},
 					},
@@ -29,13 +29,13 @@ func EnvoySingleEndpointLoadAssignment(out *clusterv3.Cluster, address string, p
 	}
 }
 
-func EnvoyEndpoint(address string, port uint32) *envoy_config_endpoint_v3.Endpoint {
-	return &envoy_config_endpoint_v3.Endpoint{
-		Address: &corev3.Address{
-			Address: &corev3.Address_SocketAddress{
-				SocketAddress: &corev3.SocketAddress{
+func EnvoyEndpoint(address string, port uint32) *envoyendpointv3.Endpoint {
+	return &envoyendpointv3.Endpoint{
+		Address: &envoycorev3.Address{
+			Address: &envoycorev3.Address_SocketAddress{
+				SocketAddress: &envoycorev3.SocketAddress{
 					Address: address,
-					PortSpecifier: &corev3.SocketAddress_PortValue{
+					PortSpecifier: &envoycorev3.SocketAddress_PortValue{
 						PortValue: port,
 					},
 				},
@@ -44,7 +44,7 @@ func EnvoyEndpoint(address string, port uint32) *envoy_config_endpoint_v3.Endpoi
 	}
 }
 
-func SetExtensionProtocolOptions(out *clusterv3.Cluster, filterName string, protoext proto.Message) error {
+func SetExtensionProtocolOptions(out *envoyclusterv3.Cluster, filterName string, protoext proto.Message) error {
 	protoextAny, err := utils.MessageToAny(protoext)
 	if err != nil {
 		return fmt.Errorf("converting extension %s protocol options to struct: %w", filterName, err)

@@ -10,10 +10,10 @@ import (
 	"istio.io/istio/pkg/kube/krt"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	sockets_raw_buffer "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/raw_buffer/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	corev1 "k8s.io/api/core/v1"
 
@@ -91,13 +91,13 @@ func isDisabledForUpstream(_ ir.BackendObjectIR) bool {
 // we don't have a good way of know if we have ssl on the upstream, so check cluster instead
 // this could be a problem if the policy that adds ssl runs after this one.
 // so we need to think about how's best to handle this.
-func doesClusterHaveSslConfigPresent(_ *clusterv3.Cluster) bool {
+func doesClusterHaveSslConfigPresent(_ *envoyclusterv3.Cluster) bool {
 	// TODO: implement this
 	return false
 }
 
-func (p istioPlugin) processBackend(ctx context.Context, ir ir.PolicyIR, in ir.BackendObjectIR, out *clusterv3.Cluster) {
-	var socketmatches []*clusterv3.Cluster_TransportSocketMatch
+func (p istioPlugin) processBackend(ctx context.Context, ir ir.PolicyIR, in ir.BackendObjectIR, out *envoyclusterv3.Cluster) {
+	var socketmatches []*envoyclusterv3.Cluster_TransportSocketMatch
 
 	st, ok := ir.(IstioSettings)
 	if !ok {
@@ -110,7 +110,7 @@ func (p istioPlugin) processBackend(ctx context.Context, ir ir.PolicyIR, in ir.B
 	if st.EnableAutoMtls && !isDisabledForUpstream(in) && !doesClusterHaveSslConfigPresent(out) {
 		sni := buildSni(in)
 
-		socketmatches = []*clusterv3.Cluster_TransportSocketMatch{
+		socketmatches = []*envoyclusterv3.Cluster_TransportSocketMatch{
 			// add istio mtls match
 			createIstioMatch(sni),
 			// plaintext match. Note: this needs to come after the tlsMode-istio match
@@ -121,33 +121,33 @@ func (p istioPlugin) processBackend(ctx context.Context, ir ir.PolicyIR, in ir.B
 	}
 }
 
-func createIstioMatch(sni string) *clusterv3.Cluster_TransportSocketMatch {
+func createIstioMatch(sni string) *envoyclusterv3.Cluster_TransportSocketMatch {
 	istioMtlsTransportSocketMatch := &structpb.Struct{
 		Fields: map[string]*structpb.Value{
 			ourwellknown.TLSModeLabelShortname: {Kind: &structpb.Value_StringValue{StringValue: ourwellknown.IstioMutualTLSModeLabel}},
 		},
 	}
 
-	sslSds := &tlsv3.UpstreamTlsContext{
+	sslSds := &envoytlsv3.UpstreamTlsContext{
 		Sni: sni,
-		CommonTlsContext: &tlsv3.CommonTlsContext{
+		CommonTlsContext: &envoytlsv3.CommonTlsContext{
 			AlpnProtocols: []string{"istio"},
-			TlsParams:     &tlsv3.TlsParameters{},
-			ValidationContextType: &tlsv3.CommonTlsContext_ValidationContextSdsSecretConfig{
-				ValidationContextSdsSecretConfig: &tlsv3.SdsSecretConfig{
+			TlsParams:     &envoytlsv3.TlsParameters{},
+			ValidationContextType: &envoytlsv3.CommonTlsContext_ValidationContextSdsSecretConfig{
+				ValidationContextSdsSecretConfig: &envoytlsv3.SdsSecretConfig{
 					Name: ourwellknown.IstioValidationContext,
-					SdsConfig: &corev3.ConfigSource{
-						ResourceApiVersion: corev3.ApiVersion_V3,
-						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-							ApiConfigSource: &corev3.ApiConfigSource{
+					SdsConfig: &envoycorev3.ConfigSource{
+						ResourceApiVersion: envoycorev3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoycorev3.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &envoycorev3.ApiConfigSource{
 								// Istio sets this to skip the node identifier in later discovery requests
 								SetNodeOnFirstMessageOnly: true,
-								ApiType:                   corev3.ApiConfigSource_GRPC,
-								TransportApiVersion:       corev3.ApiVersion_V3,
-								GrpcServices: []*corev3.GrpcService{
+								ApiType:                   envoycorev3.ApiConfigSource_GRPC,
+								TransportApiVersion:       envoycorev3.ApiVersion_V3,
+								GrpcServices: []*envoycorev3.GrpcService{
 									{
-										TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{ClusterName: ourwellknown.SdsClusterName},
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{ClusterName: ourwellknown.SdsClusterName},
 										},
 									},
 								},
@@ -156,21 +156,21 @@ func createIstioMatch(sni string) *clusterv3.Cluster_TransportSocketMatch {
 					},
 				},
 			},
-			TlsCertificateSdsSecretConfigs: []*tlsv3.SdsSecretConfig{
+			TlsCertificateSdsSecretConfigs: []*envoytlsv3.SdsSecretConfig{
 				{
 					Name: ourwellknown.IstioCertSecret,
-					SdsConfig: &corev3.ConfigSource{
-						ResourceApiVersion: corev3.ApiVersion_V3,
-						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-							ApiConfigSource: &corev3.ApiConfigSource{
-								ApiType: corev3.ApiConfigSource_GRPC,
+					SdsConfig: &envoycorev3.ConfigSource{
+						ResourceApiVersion: envoycorev3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoycorev3.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &envoycorev3.ApiConfigSource{
+								ApiType: envoycorev3.ApiConfigSource_GRPC,
 								// Istio sets this to skip the node identifier in later discovery requests
 								SetNodeOnFirstMessageOnly: true,
-								TransportApiVersion:       corev3.ApiVersion_V3,
-								GrpcServices: []*corev3.GrpcService{
+								TransportApiVersion:       envoycorev3.ApiVersion_V3,
+								GrpcServices: []*envoycorev3.GrpcService{
 									{
-										TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: ourwellknown.SdsClusterName,
 											},
 										},
@@ -185,27 +185,27 @@ func createIstioMatch(sni string) *clusterv3.Cluster_TransportSocketMatch {
 	}
 
 	typedConfig, _ := utils.MessageToAny(sslSds)
-	transportSocket := &corev3.TransportSocket{
+	transportSocket := &envoycorev3.TransportSocket{
 		Name:       wellknown.TransportSocketTls,
-		ConfigType: &corev3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
+		ConfigType: &envoycorev3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
 	}
 
-	return &clusterv3.Cluster_TransportSocketMatch{
+	return &envoyclusterv3.Cluster_TransportSocketMatch{
 		Name:            fmt.Sprintf("%s-%s", ourwellknown.TLSModeLabelShortname, ourwellknown.IstioMutualTLSModeLabel),
 		Match:           istioMtlsTransportSocketMatch,
 		TransportSocket: transportSocket,
 	}
 }
 
-func createDefaultIstioMatch() *clusterv3.Cluster_TransportSocketMatch {
+func createDefaultIstioMatch() *envoyclusterv3.Cluster_TransportSocketMatch {
 	// Based on Istio's default match https://github.com/istio/istio/blob/fa321ebd2a1186325788b0f461aa9f36a1a8d90e/pilot/pkg/xds/filters/filters.go#L78
 	typedConfig, _ := utils.MessageToAny(&sockets_raw_buffer.RawBuffer{})
-	rawBufferTransportSocket := &corev3.TransportSocket{
+	rawBufferTransportSocket := &envoycorev3.TransportSocket{
 		Name:       wellknown.TransportSocketRawBuffer,
-		ConfigType: &corev3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
+		ConfigType: &envoycorev3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
 	}
 
-	return &clusterv3.Cluster_TransportSocketMatch{
+	return &envoyclusterv3.Cluster_TransportSocketMatch{
 		Name:            fmt.Sprintf("%s-disabled", ourwellknown.TLSModeLabelShortname),
 		Match:           &structpb.Struct{},
 		TransportSocket: rawBufferTransportSocket,

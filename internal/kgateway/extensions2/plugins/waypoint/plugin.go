@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/extensions2/common"
 	extensionsplug "github.com/kgateway-dev/kgateway/v2/internal/kgateway/extensions2/plugin"
@@ -80,7 +80,7 @@ type PerClientProcessor struct {
 	waypointGatewayClassName string
 }
 
-func (t *PerClientProcessor) processBackend(kctx krt.HandlerContext, ctx context.Context, ucc ir.UniqlyConnectedClient, in ir.BackendObjectIR, out *clusterv3.Cluster) {
+func (t *PerClientProcessor) processBackend(kctx krt.HandlerContext, ctx context.Context, ucc ir.UniqlyConnectedClient, in ir.BackendObjectIR, out *envoyclusterv3.Cluster) {
 	// If the ucc has a waypoint gateway class we will let it have an EDS cluster
 	gwKey := ir.ObjectSource{
 		Group:     wellknown.GatewayGVK.GroupKind().Group,
@@ -129,18 +129,18 @@ func (t *PerClientProcessor) processBackend(kctx krt.HandlerContext, ctx context
 // processIngressUseWaypoint configures the cluster of the connected gateway to have a static
 // inlined addresses of the destination service. This will cause the traffic from the kgateway
 // to be redirected to the waypoint by the ztunnel.
-func processIngressUseWaypoint(in ir.BackendObjectIR, out *clusterv3.Cluster) {
+func processIngressUseWaypoint(in ir.BackendObjectIR, out *envoyclusterv3.Cluster) {
 	addresses := waypointquery.BackendAddresses(in)
 
 	// Set the output cluster to be of type STATIC and instead of the default EDS and add
 	// the addresses of the backend embedded into the CLA of this cluster config.
-	out.ClusterDiscoveryType = &clusterv3.Cluster_Type{
-		Type: clusterv3.Cluster_STATIC,
+	out.ClusterDiscoveryType = &envoyclusterv3.Cluster_Type{
+		Type: envoyclusterv3.Cluster_STATIC,
 	}
 	out.EdsClusterConfig = nil
-	out.LoadAssignment = &envoy_config_endpoint_v3.ClusterLoadAssignment{
+	out.LoadAssignment = &envoyendpointv3.ClusterLoadAssignment{
 		ClusterName: out.GetName(),
-		Endpoints:   make([]*envoy_config_endpoint_v3.LocalityLbEndpoints, 0, len(addresses)),
+		Endpoints:   make([]*envoyendpointv3.LocalityLbEndpoints, 0, len(addresses)),
 	}
 
 	for _, addr := range addresses {
@@ -148,17 +148,17 @@ func processIngressUseWaypoint(in ir.BackendObjectIR, out *clusterv3.Cluster) {
 	}
 }
 
-func claEndpoint(address string, port uint32) *envoy_config_endpoint_v3.LocalityLbEndpoints {
-	return &envoy_config_endpoint_v3.LocalityLbEndpoints{
-		LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+func claEndpoint(address string, port uint32) *envoyendpointv3.LocalityLbEndpoints {
+	return &envoyendpointv3.LocalityLbEndpoints{
+		LbEndpoints: []*envoyendpointv3.LbEndpoint{
 			{
-				HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
-					Endpoint: &envoy_config_endpoint_v3.Endpoint{
-						Address: &corev3.Address{
-							Address: &corev3.Address_SocketAddress{
-								SocketAddress: &corev3.SocketAddress{
+				HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
+					Endpoint: &envoyendpointv3.Endpoint{
+						Address: &envoycorev3.Address{
+							Address: &envoycorev3.Address_SocketAddress{
+								SocketAddress: &envoycorev3.SocketAddress{
 									Address: address,
-									PortSpecifier: &corev3.SocketAddress_PortValue{
+									PortSpecifier: &envoycorev3.SocketAddress_PortValue{
 										PortValue: port,
 									},
 								},

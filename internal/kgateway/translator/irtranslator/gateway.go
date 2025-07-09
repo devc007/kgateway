@@ -4,9 +4,9 @@ import (
 	"sort"
 	"strconv"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"istio.io/istio/pkg/slices"
@@ -36,9 +36,9 @@ type Translator struct {
 type TranslationPassPlugins map[schema.GroupKind]*TranslationPass
 
 type TranslationResult struct {
-	Routes        []*routev3.RouteConfiguration
+	Routes        []*envoyroutev3.RouteConfiguration
 	Listeners     []*envoy_config_listener_v3.Listener
-	ExtraClusters []*clusterv3.Cluster
+	ExtraClusters []*envoyclusterv3.Cluster
 }
 
 // Translate IR to gateway. IR is self contained, so no need for krt context
@@ -86,10 +86,10 @@ func (t *Translator) ComputeListener(
 	gw ir.GatewayIR,
 	lis ir.ListenerIR,
 	reporter reports.Reporter,
-) (*envoy_config_listener_v3.Listener, []*routev3.RouteConfiguration) {
+) (*envoy_config_listener_v3.Listener, []*envoyroutev3.RouteConfiguration) {
 	hasTls := false
 	gwreporter := reporter.Gateway(gw.SourceObject.Obj)
-	var routes []*routev3.RouteConfiguration
+	var routes []*envoyroutev3.RouteConfiguration
 	ret := &envoy_config_listener_v3.Listener{
 		Name:    lis.Name,
 		Address: computeListenerAddress(lis.BindAddress, lis.BindPort, gwreporter),

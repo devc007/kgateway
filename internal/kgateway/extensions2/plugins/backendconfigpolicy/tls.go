@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"istio.io/istio/pkg/kube/krt"
@@ -45,7 +45,7 @@ func translateTLSConfig(
 	secretGetter SecretGetter,
 	tlsConfig *v1alpha1.TLS,
 	namespace string,
-) (*tlsv3.UpstreamTlsContext, error) {
+) (*envoytlsv3.UpstreamTlsContext, error) {
 	var (
 		certChain, privateKey, rootCA string
 		inlineDataSource              bool
@@ -72,7 +72,7 @@ func translateTLSConfig(
 
 	dataSource := stringDataSourceGenerator(inlineDataSource)
 
-	var certChainData, privateKeyData, rootCaData *corev3.DataSource
+	var certChainData, privateKeyData, rootCaData *envoycorev3.DataSource
 	if cleanedCertChain != "" {
 		certChainData = dataSource(cleanedCertChain)
 	}
@@ -83,13 +83,13 @@ func translateTLSConfig(
 		rootCaData = dataSource(rootCA)
 	}
 
-	tlsContext := &tlsv3.CommonTlsContext{
+	tlsContext := &envoytlsv3.CommonTlsContext{
 		// default params
-		TlsParams: &tlsv3.TlsParameters{},
+		TlsParams: &envoytlsv3.TlsParameters{},
 	}
 
 	if certChainData != nil && privateKeyData != nil {
-		tlsContext.TlsCertificates = []*tlsv3.TlsCertificate{
+		tlsContext.TlsCertificates = []*envoytlsv3.TlsCertificate{
 			{
 				CertificateChain: certChainData,
 				PrivateKey:       privateKeyData,
@@ -102,8 +102,8 @@ func translateTLSConfig(
 	sanMatchers := verifySanListToTypedMatchSanList(tlsConfig.VerifySubjectAltName)
 
 	if rootCaData != nil {
-		validationCtx := &tlsv3.CommonTlsContext_ValidationContext{
-			ValidationContext: &tlsv3.CertificateValidationContext{
+		validationCtx := &envoytlsv3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoytlsv3.CertificateValidationContext{
 				TrustedCa: rootCaData,
 			},
 		}
@@ -129,14 +129,14 @@ func translateTLSConfig(
 		tlsContext.AlpnProtocols = tlsConfig.AlpnProtocols
 	}
 
-	return &tlsv3.UpstreamTlsContext{
+	return &envoytlsv3.UpstreamTlsContext{
 		CommonTlsContext:   tlsContext,
 		Sni:                tlsConfig.Sni,
 		AllowRenegotiation: ptr.Deref(tlsConfig.AllowRenegotiation, false),
 	}, nil
 }
 
-func parseTLSParameters(tlsParameters *v1alpha1.Parameters) (*tlsv3.TlsParameters, error) {
+func parseTLSParameters(tlsParameters *v1alpha1.Parameters) (*envoytlsv3.TlsParameters, error) {
 	if tlsParameters == nil {
 		return nil, nil
 	}
@@ -150,7 +150,7 @@ func parseTLSParameters(tlsParameters *v1alpha1.Parameters) (*tlsv3.TlsParameter
 		return nil, err
 	}
 
-	return &tlsv3.TlsParameters{
+	return &envoytlsv3.TlsParameters{
 		CipherSuites:              tlsParameters.CipherSuites,
 		EcdhCurves:                tlsParameters.EcdhCurves,
 		TlsMinimumProtocolVersion: tlsMinVersion,
@@ -158,18 +158,18 @@ func parseTLSParameters(tlsParameters *v1alpha1.Parameters) (*tlsv3.TlsParameter
 	}, nil
 }
 
-func parseTLSVersion(tlsVersion *v1alpha1.TLSVersion) (tlsv3.TlsParameters_TlsProtocol, error) {
+func parseTLSVersion(tlsVersion *v1alpha1.TLSVersion) (envoytlsv3.TlsParameters_TlsProtocol, error) {
 	switch *tlsVersion {
 	case v1alpha1.TLSVersion1_0:
-		return tlsv3.TlsParameters_TLSv1_0, nil
+		return envoytlsv3.TlsParameters_TLSv1_0, nil
 	case v1alpha1.TLSVersion1_1:
-		return tlsv3.TlsParameters_TLSv1_1, nil
+		return envoytlsv3.TlsParameters_TLSv1_1, nil
 	case v1alpha1.TLSVersion1_2:
-		return tlsv3.TlsParameters_TLSv1_2, nil
+		return envoytlsv3.TlsParameters_TLSv1_2, nil
 	case v1alpha1.TLSVersion1_3:
-		return tlsv3.TlsParameters_TLSv1_3, nil
+		return envoytlsv3.TlsParameters_TLSv1_3, nil
 	case v1alpha1.TLSVersionAUTO:
-		return tlsv3.TlsParameters_TLS_AUTO, nil
+		return envoytlsv3.TlsParameters_TLS_AUTO, nil
 	default:
 		return 0, fmt.Errorf("invalid TLS version: %s", *tlsVersion)
 	}
@@ -204,32 +204,32 @@ func cleanedSslKeyPair(certChain, privateKey, rootCa string) (cleanedChain strin
 
 // stringDataSourceGenerator returns a function that returns an Envoy data source that uses the given string as the data source.
 // If inlineDataSource is false, the returned function returns a file data source. Otherwise, the returned function returns an inline-string data source.
-func stringDataSourceGenerator(inlineDataSource bool) func(s string) *corev3.DataSource {
+func stringDataSourceGenerator(inlineDataSource bool) func(s string) *envoycorev3.DataSource {
 	// Return a file data source if inlineDataSource is false.
 	if !inlineDataSource {
-		return func(s string) *corev3.DataSource {
-			return &corev3.DataSource{
-				Specifier: &corev3.DataSource_Filename{
+		return func(s string) *envoycorev3.DataSource {
+			return &envoycorev3.DataSource{
+				Specifier: &envoycorev3.DataSource_Filename{
 					Filename: s,
 				},
 			}
 		}
 	}
 
-	return func(s string) *corev3.DataSource {
-		return &corev3.DataSource{
-			Specifier: &corev3.DataSource_InlineString{
+	return func(s string) *envoycorev3.DataSource {
+		return &envoycorev3.DataSource{
+			Specifier: &envoycorev3.DataSource_InlineString{
 				InlineString: s,
 			},
 		}
 	}
 }
 
-func verifySanListToTypedMatchSanList(sanList []string) []*tlsv3.SubjectAltNameMatcher {
-	var matchSanList []*tlsv3.SubjectAltNameMatcher
+func verifySanListToTypedMatchSanList(sanList []string) []*envoytlsv3.SubjectAltNameMatcher {
+	var matchSanList []*envoytlsv3.SubjectAltNameMatcher
 	for _, san := range sanList {
-		matchSan := &tlsv3.SubjectAltNameMatcher{
-			SanType: tlsv3.SubjectAltNameMatcher_DNS,
+		matchSan := &envoytlsv3.SubjectAltNameMatcher{
+			SanType: envoytlsv3.SubjectAltNameMatcher_DNS,
 			Matcher: &envoymatcher.StringMatcher{
 				MatchPattern: &envoymatcher.StringMatcher_Exact{Exact: san},
 			},

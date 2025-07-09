@@ -3,23 +3,23 @@ package bootstrap
 import (
 	"errors"
 
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	envoyresource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 )
 
 type EnvoyResources struct {
-	Clusters  []*clusterv3.Cluster
+	Clusters  []*envoyclusterv3.Cluster
 	Listeners []*envoy_config_listener_v3.Listener
-	Secrets   []*tlsv3.Secret
+	Secrets   []*envoytlsv3.Secret
 	// routes are only used in converting from an xds snapshot.
-	routes []*routev3.RouteConfiguration
+	routes []*envoyroutev3.RouteConfiguration
 	// endpoints are only used in converting from an xds snapshot.
-	endpoints []*endpointv3.ClusterLoadAssignment
+	endpoints []*envoyendpointv3.ClusterLoadAssignment
 }
 
 func resourcesFromSnapshot(snap envoycache.ResourceSnapshot) (*EnvoyResources, error) {
@@ -64,10 +64,10 @@ func listenersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoy_config_li
 
 // clustersFromSnapshot accepts a Snapshot and extracts from it a slice of pointers to
 // the Cluster structs contained in the Snapshot.
-func clustersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*clusterv3.Cluster, error) {
-	var clusters []*clusterv3.Cluster
+func clustersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoyclusterv3.Cluster, error) {
+	var clusters []*envoyclusterv3.Cluster
 	for _, v := range snap.GetResources(envoyresource.ClusterType) {
-		c, ok := v.(*clusterv3.Cluster)
+		c, ok := v.(*envoyclusterv3.Cluster)
 		if !ok {
 			return nil, errors.New("invalid cluster type found")
 		}
@@ -78,10 +78,10 @@ func clustersFromSnapshot(snap envoycache.ResourceSnapshot) ([]*clusterv3.Cluste
 
 // routesFromSnapshot accepts a Snapshot and extracts from it a slice of pointers to
 // the RouteConfiguration structs contained in the Snapshot.
-func routesFromSnapshot(snap envoycache.ResourceSnapshot) ([]*routev3.RouteConfiguration, error) {
-	var routes []*routev3.RouteConfiguration
+func routesFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoyroutev3.RouteConfiguration, error) {
+	var routes []*envoyroutev3.RouteConfiguration
 	for _, v := range snap.GetResources(envoyresource.RouteType) {
-		r, ok := v.(*routev3.RouteConfiguration)
+		r, ok := v.(*envoyroutev3.RouteConfiguration)
 		if !ok {
 			return nil, errors.New("invalid route type found")
 		}
@@ -92,10 +92,10 @@ func routesFromSnapshot(snap envoycache.ResourceSnapshot) ([]*routev3.RouteConfi
 
 // endpointsFromSnapshot accepts a Snapshot and extracts from it a slice of pointers to
 // the ClusterLoadAssignment structs contained in the Snapshot.
-func endpointsFromSnapshot(snap envoycache.ResourceSnapshot) ([]*endpointv3.ClusterLoadAssignment, error) {
-	var endpoints []*endpointv3.ClusterLoadAssignment
+func endpointsFromSnapshot(snap envoycache.ResourceSnapshot) ([]*envoyendpointv3.ClusterLoadAssignment, error) {
+	var endpoints []*envoyendpointv3.ClusterLoadAssignment
 	for _, v := range snap.GetResources(envoyresource.EndpointType) {
-		e, ok := v.(*endpointv3.ClusterLoadAssignment)
+		e, ok := v.(*envoyendpointv3.ClusterLoadAssignment)
 		if !ok {
 			return nil, errors.New("invalid endpoint type found")
 		}

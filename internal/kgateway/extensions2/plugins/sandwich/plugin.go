@@ -32,7 +32,7 @@ import (
 	"context"
 	"time"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	sfsvalue "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/set_filter_state/v3"
 	proxy_protocol "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
@@ -168,10 +168,10 @@ var (
 					},
 					FactoryKey: "envoy.string",
 					Value: &sfsvalue.FilterStateValue_FormatString{
-						FormatString: &corev3.SubstitutionFormatString{
-							Format: &corev3.SubstitutionFormatString_TextFormatSource{
-								TextFormatSource: &corev3.DataSource{
-									Specifier: &corev3.DataSource_InlineString{
+						FormatString: &envoycorev3.SubstitutionFormatString{
+							Format: &envoycorev3.SubstitutionFormatString_TextFormatSource{
+								TextFormatSource: &envoycorev3.DataSource{
+									Specifier: &envoycorev3.DataSource_InlineString{
 										InlineString: "%DYNAMIC_METADATA(envoy.filters.listener.proxy_protocol:peer_principal)%",
 									},
 								},

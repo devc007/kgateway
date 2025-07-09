@@ -6,11 +6,11 @@ import (
 	"fmt"
 
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -30,7 +30,7 @@ var (
 
 func FromEnvoyResources(resources *EnvoyResources) (string, error) {
 	bootstrap := &envoy_config_bootstrap_v3.Bootstrap{
-		Node: &corev3.Node{
+		Node: &envoycorev3.Node{
 			Id:      "validation-node-id",
 			Cluster: "validation-cluster",
 		},
@@ -59,7 +59,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	}
 
 	// Construct a vhost that contains our filter config as TypedPerFilterConfig.
-	vhosts := []*routev3.VirtualHost{
+	vhosts := []*envoyroutev3.VirtualHost{
 		{
 			Name:    "placeholder_host",
 			Domains: []string{"*"},
@@ -77,7 +77,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	hcm := &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{
 		StatPrefix: "placeholder",
 		RouteSpecifier: &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
-			RouteConfig: &routev3.RouteConfiguration{
+			RouteConfig: &envoyroutev3.RouteConfiguration{
 				VirtualHosts: vhosts,
 			},
 		},
@@ -89,10 +89,10 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	}
 	listener := &envoy_config_listener_v3.Listener{
 		Name: "placeholder_listener",
-		Address: &corev3.Address{
-			Address: &corev3.Address_SocketAddress{SocketAddress: &corev3.SocketAddress{
+		Address: &envoycorev3.Address{
+			Address: &envoycorev3.Address_SocketAddress{SocketAddress: &envoycorev3.SocketAddress{
 				Address:       "0.0.0.0",
-				PortSpecifier: &corev3.SocketAddress_PortValue{PortValue: 8081},
+				PortSpecifier: &envoycorev3.SocketAddress_PortValue{PortValue: 8081},
 			}},
 		},
 		FilterChains: []*envoy_config_listener_v3.FilterChain{
@@ -158,7 +158,7 @@ func FromSnapshot(
 func extractRoutedClustersFromListeners(
 	routedCluster map[string]struct{},
 	listeners []*envoy_config_listener_v3.Listener,
-	routes []*routev3.RouteConfiguration,
+	routes []*envoyroutev3.RouteConfiguration,
 ) error {
 	for _, l := range listeners {
 		for _, fc := range l.GetFilterChains() {
@@ -210,8 +210,8 @@ func extractRoutedClustersFromListeners(
 // clusters is mutated in this function.
 func convertToStaticClusters(
 	routedCluster map[string]struct{},
-	clusters []*clusterv3.Cluster,
-	endpoints []*endpointv3.ClusterLoadAssignment,
+	clusters []*envoyclusterv3.Cluster,
+	endpoints []*envoyendpointv3.ClusterLoadAssignment,
 ) {
 	for _, c := range clusters {
 		delete(routedCluster, c.GetName())
@@ -231,8 +231,8 @@ func convertToStaticClusters(
 				if e.GetClusterName() == clusterName {
 					c.LoadAssignment = e
 					c.EdsClusterConfig = nil
-					c.ClusterDiscoveryType = &clusterv3.Cluster_Type{
-						Type: clusterv3.Cluster_STRICT_DNS,
+					c.ClusterDiscoveryType = &envoyclusterv3.Cluster_Type{
+						Type: envoyclusterv3.Cluster_STRICT_DNS,
 					}
 				}
 			}
@@ -246,17 +246,17 @@ func convertToStaticClusters(
 // by this function.
 func addBlackholeClusters(
 	routedCluster map[string]struct{},
-	clusters []*clusterv3.Cluster,
-) []*clusterv3.Cluster {
+	clusters []*envoyclusterv3.Cluster,
+) []*envoyclusterv3.Cluster {
 	for c := range routedCluster {
-		clusters = append(clusters, &clusterv3.Cluster{
+		clusters = append(clusters, &envoyclusterv3.Cluster{
 			Name: c,
-			ClusterDiscoveryType: &clusterv3.Cluster_Type{
-				Type: clusterv3.Cluster_STATIC,
+			ClusterDiscoveryType: &envoyclusterv3.Cluster_Type{
+				Type: envoyclusterv3.Cluster_STATIC,
 			},
-			LoadAssignment: &endpointv3.ClusterLoadAssignment{
+			LoadAssignment: &envoyendpointv3.ClusterLoadAssignment{
 				ClusterName: c,
-				Endpoints:   []*endpointv3.LocalityLbEndpoints{},
+				Endpoints:   []*envoyendpointv3.LocalityLbEndpoints{},
 			},
 		})
 	}
@@ -293,7 +293,7 @@ func getHcmForFilterChain(fc *envoy_config_listener_v3.FilterChain) (
 // findTargetedClusters accepts a pointer to a RouteConfiguration and a hash set of strings. It
 // finds all clusters and weighted clusters targeted by routes on the virtual hosts in the RouteConfiguration
 // and adds their names to the routedCluster hash set. routedCluster is mutated in this function.
-func findTargetedClusters(r *routev3.RouteConfiguration, routedCluster map[string]struct{}) {
+func findTargetedClusters(r *envoyroutev3.RouteConfiguration, routedCluster map[string]struct{}) {
 	for _, v := range r.GetVirtualHosts() {
 		for _, r := range v.GetRoutes() {
 			if r.GetRoute() == nil {
@@ -318,7 +318,7 @@ func findTargetedClusters(r *routev3.RouteConfiguration, routedCluster map[strin
 func setStaticRouteConfig(
 	f *envoy_config_listener_v3.Filter,
 	hcm *envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager,
-	r *routev3.RouteConfiguration,
+	r *envoyroutev3.RouteConfiguration,
 ) error {
 	hcm.RouteSpecifier = &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager_RouteConfig{
 		RouteConfig: r,
