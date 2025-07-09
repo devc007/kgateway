@@ -61,9 +61,6 @@ jobs:
               exit 1
             fi
             echo "goreleaser_args=--clean --skip=validate" >> $GITHUB_OUTPUT
-          elif [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            echo "goreleaser_args=--clean" >> $GITHUB_OUTPUT
           elif [[ $GITHUB_REF == refs/heads/main ]]; then
             VERSION="${MAIN_VERSION}"
             echo "goreleaser_args=--clean --skip=validate" >> $GITHUB_OUTPUT
