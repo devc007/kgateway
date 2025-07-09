@@ -52,7 +52,7 @@ jobs:
           GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD | sed -e "s/\//-/g")
 
           # Validate version input for workflow_dispatch
-          if [[ ${{ github.event_name }} == 'workflow_dispatch' && -n "${{ inputs.version }}" ]]; then
+          if [[ ${{ github.event_name }} == 'workflow_dispatch' ]]; then
             VERSION="${{ inputs.version }}"
             # Validate semver format. Modified version from the recommended semver format.
             # See https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string.
