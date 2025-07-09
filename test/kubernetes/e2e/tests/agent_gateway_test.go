@@ -12,8 +12,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
-var AgentGatewayIntegrationValuesPath = e2e.ManifestPath("agent-gateway-integration.yaml")
-
 func TestAgentGatewayIntegration(t *testing.T) {
 	ctx := context.Background()
 	installNs, nsEnvPredefined := envutils.LookupOrDefault(testutils.InstallNamespace, "agent-gateway-test")
@@ -22,7 +20,7 @@ func TestAgentGatewayIntegration(t *testing.T) {
 		&install.Context{
 			InstallNamespace:          installNs,
 			ProfileValuesManifestFile: e2e.CommonRecommendationManifest,
-			ValuesManifestFile:        AgentGatewayIntegrationValuesPath,
+			ValuesManifestFile:        e2e.ManifestPath("agent-gateway-integration.yaml"),
 		},
 	)
 

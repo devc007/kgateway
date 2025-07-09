@@ -20,8 +20,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
-var AIValuesManifestPath = e2e.ManifestPath("ai-extension-helm.yaml")
-
 // TestAIExtensions tests the AI extension functionality
 func TestAIExtensions(t *testing.T) {
 	ctx := context.Background()
@@ -30,7 +28,7 @@ func TestAIExtensions(t *testing.T) {
 		t,
 		&install.Context{
 			InstallNamespace:          installNs,
-			ProfileValuesManifestFile: AIValuesManifestPath,
+			ProfileValuesManifestFile: e2e.ManifestPath("ai-extension-helm.yaml"),
 			ValuesManifestFile:        e2e.EmptyValuesManifestPath,
 		},
 	)
