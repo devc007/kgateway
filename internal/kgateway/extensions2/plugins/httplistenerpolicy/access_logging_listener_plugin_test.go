@@ -6,7 +6,7 @@ import (
 	"time"
 
 	v33 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyalfile "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	cel "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/filters/cel/v3"
@@ -70,8 +70,8 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.json",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
-									LogFormat: &envoycore.SubstitutionFormatString{
-										Formatters: []*envoycore.TypedExtensionConfig{
+									LogFormat: &envoycorev3.SubstitutionFormatString{
+										Formatters: []*envoycorev3.TypedExtensionConfig{
 											{
 												Name:        "envoy.formatter.req_without_query",
 												TypedConfig: mustMessageToAny(t, &envoy_req_without_query.ReqWithoutQuery{}),
@@ -81,7 +81,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 												TypedConfig: mustMessageToAny(t, &envoy_metadata_formatter.Metadata{}),
 											},
 										},
-										Format: &envoycore.SubstitutionFormatString_JsonFormat{
+										Format: &envoycorev3.SubstitutionFormatString_JsonFormat{
 											JsonFormat: &structpb.Struct{
 												Fields: map[string]*structpb.Value{
 													"request_method": {
@@ -140,11 +140,11 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 								AdditionalResponseHeadersToLog:  []string{"x-response-id"},
 								AdditionalResponseTrailersToLog: []string{"x-trailer"},
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 									LogName:             "grpc-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: "backend_default_test-service_0",
 											},
 										},
@@ -159,8 +159,8 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/file-access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
-									LogFormat: &envoycore.SubstitutionFormatString{
-										Formatters: []*envoycore.TypedExtensionConfig{
+									LogFormat: &envoycorev3.SubstitutionFormatString{
+										Formatters: []*envoycorev3.TypedExtensionConfig{
 											{
 												Name:        "envoy.formatter.req_without_query",
 												TypedConfig: mustMessageToAny(t, &envoy_req_without_query.ReqWithoutQuery{}),
@@ -170,9 +170,9 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 												TypedConfig: mustMessageToAny(t, &envoy_metadata_formatter.Metadata{}),
 											},
 										},
-										Format: &envoycore.SubstitutionFormatString_TextFormatSource{
-											TextFormatSource: &envoycore.DataSource{
-												Specifier: &envoycore.DataSource_InlineString{
+										Format: &envoycorev3.SubstitutionFormatString_TextFormatSource{
+											TextFormatSource: &envoycorev3.DataSource{
+												Specifier: &envoycorev3.DataSource_InlineString{
 													InlineString: "[%START_TIME%] %RESPONSE_CODE%",
 												},
 											},
@@ -201,8 +201,8 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
-									LogFormat: &envoycore.SubstitutionFormatString{
-										Formatters: []*envoycore.TypedExtensionConfig{
+									LogFormat: &envoycorev3.SubstitutionFormatString{
+										Formatters: []*envoycorev3.TypedExtensionConfig{
 											{
 												Name:        "envoy.formatter.req_without_query",
 												TypedConfig: mustMessageToAny(t, &envoy_req_without_query.ReqWithoutQuery{}),
@@ -212,9 +212,9 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 												TypedConfig: mustMessageToAny(t, &envoy_metadata_formatter.Metadata{}),
 											},
 										},
-										Format: &envoycore.SubstitutionFormatString_TextFormatSource{
-											TextFormatSource: &envoycore.DataSource{
-												Specifier: &envoycore.DataSource_InlineString{
+										Format: &envoycorev3.SubstitutionFormatString_TextFormatSource{
+											TextFormatSource: &envoycorev3.DataSource{
+												Specifier: &envoycorev3.DataSource_InlineString{
 													InlineString: "test log format",
 												},
 											},
@@ -245,8 +245,8 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
-									LogFormat: &envoycore.SubstitutionFormatString{
-										Formatters: []*envoycore.TypedExtensionConfig{
+									LogFormat: &envoycorev3.SubstitutionFormatString{
+										Formatters: []*envoycorev3.TypedExtensionConfig{
 											{
 												Name:        "envoy.formatter.req_without_query",
 												TypedConfig: mustMessageToAny(t, &envoy_req_without_query.ReqWithoutQuery{}),
@@ -256,7 +256,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 												TypedConfig: mustMessageToAny(t, &envoy_metadata_formatter.Metadata{}),
 											},
 										},
-										Format: &envoycore.SubstitutionFormatString_JsonFormat{
+										Format: &envoycorev3.SubstitutionFormatString_JsonFormat{
 											JsonFormat: &structpb.Struct{
 												Fields: map[string]*structpb.Value{
 													"request_method": {
@@ -304,14 +304,14 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: "backend_default_test-service_0",
 											},
 										},
 									},
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 							}),
 						},
@@ -349,19 +349,19 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: "backend_default_test-service_0",
 											},
 										},
-										RetryPolicy: &envoycore.RetryPolicy{
-											RetryBackOff: &envoycore.BackoffStrategy{
+										RetryPolicy: &envoycorev3.RetryPolicy{
+											RetryBackOff: &envoycorev3.BackoffStrategy{
 												BaseInterval: &durationpb.Duration{Seconds: 5},
 											},
 										},
 									},
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 							}),
 						},
@@ -408,9 +408,9 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName:             "backend_default_test-service_0",
 												Authority:               "www.example.com",
 												MaxReceiveMessageLength: &wrapperspb.UInt32Value{Value: 127},
@@ -418,19 +418,19 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 											},
 										},
 										Timeout: &durationpb.Duration{Seconds: 10},
-										InitialMetadata: []*envoycore.HeaderValue{{
+										InitialMetadata: []*envoycorev3.HeaderValue{{
 											Key:   "key",
 											Value: "value",
 										}},
-										RetryPolicy: &envoycore.RetryPolicy{
-											RetryBackOff: &envoycore.BackoffStrategy{
+										RetryPolicy: &envoycorev3.RetryPolicy{
+											RetryBackOff: &envoycorev3.BackoffStrategy{
 												BaseInterval: &durationpb.Duration{Seconds: 5},
 												MaxInterval:  &durationpb.Duration{Seconds: 10},
 											},
 											NumRetries: &wrapperspb.UInt32Value{Value: 3},
 										},
 									},
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 							}),
 						},
@@ -462,8 +462,8 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
-									LogFormat: &envoycore.SubstitutionFormatString{
-										Formatters: []*envoycore.TypedExtensionConfig{
+									LogFormat: &envoycorev3.SubstitutionFormatString{
+										Formatters: []*envoycorev3.TypedExtensionConfig{
 											{
 												Name:        "envoy.formatter.req_without_query",
 												TypedConfig: mustMessageToAny(t, &envoy_req_without_query.ReqWithoutQuery{}),
@@ -473,9 +473,9 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 												TypedConfig: mustMessageToAny(t, &envoy_metadata_formatter.Metadata{}),
 											},
 										},
-										Format: &envoycore.SubstitutionFormatString_TextFormatSource{
-											TextFormatSource: &envoycore.DataSource{
-												Specifier: &envoycore.DataSource_InlineString{
+										Format: &envoycorev3.SubstitutionFormatString_TextFormatSource{
+											TextFormatSource: &envoycorev3.DataSource{
+												Specifier: &envoycorev3.DataSource_InlineString{
 													InlineString: "hello kgateway",
 												},
 											},
@@ -489,7 +489,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 								StatusCodeFilter: &v33.StatusCodeFilter{
 									Comparison: &v33.ComparisonFilter{
 										Op: v33.ComparisonFilter_EQ,
-										Value: &envoycore.RuntimeUInt32{
+										Value: &envoycorev3.RuntimeUInt32{
 											DefaultValue: 5,
 										},
 									},
@@ -576,7 +576,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 								DurationFilter: &v33.DurationFilter{
 									Comparison: &v33.ComparisonFilter{
 										Op: v33.ComparisonFilter_EQ,
-										Value: &envoycore.RuntimeUInt32{
+										Value: &envoycorev3.RuntimeUInt32{
 											DefaultValue: 5,
 										},
 									},
@@ -782,14 +782,14 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoy_open_telemetry.OpenTelemetryAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "otel-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: "backend_default_test-service_0",
 											},
 										},
 									},
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 							}),
 						},
@@ -895,14 +895,14 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 							TypedConfig: mustMessageToAny(t, &envoy_open_telemetry.OpenTelemetryAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "otel-log",
-									GrpcService: &envoycore.GrpcService{
-										TargetSpecifier: &envoycore.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &envoycore.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: "backend_default_test-service_0",
 											},
 										},
 									},
-									TransportApiVersion: envoycore.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 								Body: &otelv1.AnyValue{
 									Value: &otelv1.AnyValue_StringValue{

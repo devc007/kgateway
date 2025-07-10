@@ -20,8 +20,8 @@ import (
 	agentgateway "github.com/agentgateway/agentgateway/go/api"
 	"github.com/agentgateway/agentgateway/go/api/a2a"
 	"github.com/agentgateway/agentgateway/go/api/mcp"
-	envoycluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -487,7 +487,7 @@ func newXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gwname string)
 	d := xdsDumper{
 		conn: conn,
 		dr: &discovery_v3.DiscoveryRequest{
-			Node: &envoycore.Node{
+			Node: &envoycorev3.Node{
 				Id: "gateway.gwtest",
 				Metadata: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -522,7 +522,7 @@ func newAgentGatewayXdsDumper(t *testing.T, ctx context.Context, xdsPort int, gw
 	d := xdsDumper{
 		conn: conn,
 		dr: &discovery_v3.DiscoveryRequest{
-			Node: &envoycore.Node{
+			Node: &envoycorev3.Node{
 				Id: "gateway.gwtest",
 				Metadata: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -700,7 +700,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 	dr.TypeUrl = "type.googleapis.com/envoy.config.listener.v3.Listener"
 	x.adsClient.Send(dr)
 
-	var clusters []*envoycluster.Cluster
+	var clusters []*envoyclusterv3.Cluster
 	var listeners []*envoylistener.Listener
 	var errs error
 
@@ -717,7 +717,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 			t.Logf("got response: %s len: %d", dresp.GetTypeUrl(), len(dresp.GetResources()))
 			if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.cluster.v3.Cluster" {
 				for _, anyCluster := range dresp.GetResources() {
-					var cluster envoycluster.Cluster
+					var cluster envoyclusterv3.Cluster
 					if err := anyCluster.UnmarshalTo(&cluster); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal cluster: %v", err))
 					}
@@ -764,7 +764,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 	}
 	t.Logf("xds: found %d listeners and %d clusters", len(listeners), len(clusters))
 
-	clusterServiceNames := istioslices.MapFilter(clusters, func(c *envoycluster.Cluster) *string {
+	clusterServiceNames := istioslices.MapFilter(clusters, func(c *envoyclusterv3.Cluster) *string {
 		if c.GetEdsClusterConfig() != nil {
 			if c.GetEdsClusterConfig().GetServiceName() != "" {
 				s := c.GetEdsClusterConfig().GetServiceName()
@@ -845,7 +845,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 }
 
 type xdsDump struct {
-	Clusters  []*envoycluster.Cluster
+	Clusters  []*envoyclusterv3.Cluster
 	Listeners []*envoylistener.Listener
 	Endpoints []*envoyendpointv3.ClusterLoadAssignment
 	Routes    []*envoyroutev3.RouteConfiguration
@@ -868,7 +868,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		errs = errors.Join(errs, fmt.Errorf("expected %v routes, got %v", len(other.Routes), len(x.Routes)))
 	}
 
-	clusterset := map[string]*envoycluster.Cluster{}
+	clusterset := map[string]*envoyclusterv3.Cluster{}
 	for _, c := range x.Clusters {
 		clusterset[c.Name] = c
 	}
@@ -1005,7 +1005,7 @@ func (x *xdsDump) FromYaml(ya []byte) error {
 		return err
 	}
 	for _, c := range jsonM["clusters"] {
-		r, err := anyJsonRoundTrip[envoycluster.Cluster](c)
+		r, err := anyJsonRoundTrip[envoyclusterv3.Cluster](c)
 		if err != nil {
 			return err
 		}
