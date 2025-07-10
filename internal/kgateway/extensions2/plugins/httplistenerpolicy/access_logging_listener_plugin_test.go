@@ -7,7 +7,7 @@ import (
 
 	v33 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyalfile "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	cel "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/filters/cel/v3"
 	envoygrpc "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/grpc/v3"
@@ -530,9 +530,9 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						Filter: &v33.AccessLogFilter{
 							FilterSpecifier: &v33.AccessLogFilter_HeaderFilter{
 								HeaderFilter: &v33.HeaderFilter{
-									Header: &envoyroute.HeaderMatcher{
+									Header: &envoyroutev3.HeaderMatcher{
 										Name: "x-test-header",
-										HeaderMatchSpecifier: &envoyroute.HeaderMatcher_StringMatch{
+										HeaderMatchSpecifier: &envoyroutev3.HeaderMatcher_StringMatch{
 											StringMatch: &envoymatcher.StringMatcher{
 												MatchPattern: &envoymatcher.StringMatcher_Exact{
 													Exact: "test-value",

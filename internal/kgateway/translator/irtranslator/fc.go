@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sort"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -38,7 +38,7 @@ type filterChainTranslator struct {
 	PluginPass TranslationPassPlugins
 }
 
-func computeListenerAddress(bindAddress string, port uint32, reporter reports.GatewayReporter) *envoy_config_core_v3.Address {
+func computeListenerAddress(bindAddress string, port uint32, reporter reports.GatewayReporter) *envoycorev3.Address {
 	_, isIpv4Address, err := utils.IsIpv4Address(bindAddress)
 	if err != nil {
 		// TODO: return error ????
@@ -50,12 +50,12 @@ func computeListenerAddress(bindAddress string, port uint32, reporter reports.Ga
 		})
 	}
 
-	return &envoy_config_core_v3.Address{
-		Address: &envoy_config_core_v3.Address_SocketAddress{
-			SocketAddress: &envoy_config_core_v3.SocketAddress{
-				Protocol: envoy_config_core_v3.SocketAddress_TCP,
+	return &envoycorev3.Address{
+		Address: &envoycorev3.Address_SocketAddress{
+			SocketAddress: &envoycorev3.SocketAddress{
+				Protocol: envoycorev3.SocketAddress_TCP,
 				Address:  bindAddress,
-				PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+				PortSpecifier: &envoycorev3.SocketAddress_PortValue{
 					PortValue: port,
 				},
 				// As of Envoy 1.22: https://www.envoyproxy.io/docs/envoy/latest/version_history/v1.22/v1.22.0.html
@@ -251,10 +251,10 @@ func (h *hcmNetworkFilterTranslator) initializeHCM() *envoyhttp.HttpConnectionMa
 		UseRemoteAddress: wrapperspb.Bool(true),
 		RouteSpecifier: &envoyhttp.HttpConnectionManager_Rds{
 			Rds: &envoyhttp.Rds{
-				ConfigSource: &envoy_config_core_v3.ConfigSource{
-					ResourceApiVersion: envoy_config_core_v3.ApiVersion_V3,
-					ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_Ads{
-						Ads: &envoy_config_core_v3.AggregatedConfigSource{},
+				ConfigSource: &envoycorev3.ConfigSource{
+					ResourceApiVersion: envoycorev3.ApiVersion_V3,
+					ConfigSourceSpecifier: &envoycorev3.ConfigSource_Ads{
+						Ads: &envoycorev3.AggregatedConfigSource{},
 					},
 				},
 				RouteConfigName: h.routeConfigName,
@@ -444,7 +444,7 @@ func (info *FilterChainInfo) toMatch() *envoy_config_listener_v3.FilterChainMatc
 	}
 }
 
-func (info *FilterChainInfo) toTransportSocket() *envoy_config_core_v3.TransportSocket {
+func (info *FilterChainInfo) toTransportSocket() *envoycorev3.TransportSocket {
 	if info == nil {
 		return nil
 	}
@@ -453,13 +453,13 @@ func (info *FilterChainInfo) toTransportSocket() *envoy_config_core_v3.Transport
 		return nil
 	}
 
-	common := &envoyauth.CommonTlsContext{
+	common := &envoytlsv3.CommonTlsContext{
 		// default params
-		TlsParams:     &envoyauth.TlsParameters{},
+		TlsParams:     &envoytlsv3.TlsParameters{},
 		AlpnProtocols: ssl.AlpnProtocols,
 	}
 
-	common.TlsCertificates = []*envoyauth.TlsCertificate{
+	common.TlsCertificates = []*envoytlsv3.TlsCertificate{
 		{
 			CertificateChain: bytesDataSource(ssl.CertChain),
 			PrivateKey:       bytesDataSource(ssl.PrivateKey),
@@ -478,20 +478,20 @@ func (info *FilterChainInfo) toTransportSocket() *envoy_config_core_v3.Transport
 	//		common.AlpnProtocols = []string{}
 	//	}
 
-	out := &envoyauth.DownstreamTlsContext{
+	out := &envoytlsv3.DownstreamTlsContext{
 		CommonTlsContext: common,
 	}
 	typedConfig, _ := utils.MessageToAny(out)
 
-	return &envoy_config_core_v3.TransportSocket{
+	return &envoycorev3.TransportSocket{
 		Name:       wellknown.TransportSocketTls,
-		ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
+		ConfigType: &envoycorev3.TransportSocket_TypedConfig{TypedConfig: typedConfig},
 	}
 }
 
-func bytesDataSource(s []byte) *envoy_config_core_v3.DataSource {
-	return &envoy_config_core_v3.DataSource{
-		Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+func bytesDataSource(s []byte) *envoycorev3.DataSource {
+	return &envoycorev3.DataSource{
+		Specifier: &envoycorev3.DataSource_InlineBytes{
 			InlineBytes: s,
 		},
 	}

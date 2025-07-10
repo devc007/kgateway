@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	adminv3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/solo-io/go-utils/threadsafe"
 
@@ -203,7 +203,7 @@ func (c *Client) GetConfigDump(ctx context.Context, queryParams map[string]strin
 }
 
 // GetStaticClusters returns the map of static clusters available on a ConfigDump, indexed by their name
-func (c *Client) GetStaticClusters(ctx context.Context) (map[string]*clusterv3.Cluster, error) {
+func (c *Client) GetStaticClusters(ctx context.Context) (map[string]*envoyclusterv3.Cluster, error) {
 	configDump, err := c.GetConfigDump(ctx, map[string]string{
 		"resource": "static_clusters",
 	})
@@ -215,7 +215,7 @@ func (c *Client) GetStaticClusters(ctx context.Context) (map[string]*clusterv3.C
 }
 
 // GetDynamicClusters returns the map of dynamic clusters available on a ConfigDump, indexed by their name
-func (c *Client) GetDynamicClusters(ctx context.Context) (map[string]*clusterv3.Cluster, error) {
+func (c *Client) GetDynamicClusters(ctx context.Context) (map[string]*envoyclusterv3.Cluster, error) {
 	configDump, err := c.GetConfigDump(ctx, map[string]string{
 		"resource": "dynamic_active_clusters",
 	})

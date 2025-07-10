@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	ratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	routeconfv3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	ratev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
@@ -299,7 +299,7 @@ func TestToRateLimitFilterConfig(t *testing.T) {
 				require.NotNil(t, rl)
 				assert.Equal(t, "test-domain", rl.Domain)
 				assert.Equal(t, defaultClusterName, rl.RateLimitService.GrpcService.GetEnvoyGrpc().ClusterName)
-				assert.Equal(t, corev3.ApiVersion_V3, rl.RateLimitService.TransportApiVersion)
+				assert.Equal(t, envoycorev3.ApiVersion_V3, rl.RateLimitService.TransportApiVersion)
 				assert.Equal(t, ratev3.RateLimit_DRAFT_VERSION_03, rl.EnableXRatelimitHeaders)
 				assert.Equal(t, "both", rl.RequestType)
 				assert.Equal(t, rateLimitStatPrefix, rl.StatPrefix)
@@ -571,14 +571,14 @@ func TestToRateLimitFilterConfig(t *testing.T) {
 								Timeout:         timeout,
 								FailureModeDeny: !extension.FailOpen,
 								RateLimitService: &ratelimitv3.RateLimitServiceConfig{
-									GrpcService: &corev3.GrpcService{
-										TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+									GrpcService: &envoycorev3.GrpcService{
+										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
 												ClusterName: clusterName,
 											},
 										},
 									},
-									TransportApiVersion: corev3.ApiVersion_V3,
+									TransportApiVersion: envoycorev3.ApiVersion_V3,
 								},
 								Stage:                   0,
 								EnableXRatelimitHeaders: ratev3.RateLimit_DRAFT_VERSION_03,
