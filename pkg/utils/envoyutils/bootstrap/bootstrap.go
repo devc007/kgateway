@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	envoybootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -29,12 +29,12 @@ var (
 )
 
 func FromEnvoyResources(resources *EnvoyResources) (string, error) {
-	bootstrap := &envoy_config_bootstrap_v3.Bootstrap{
+	bootstrap := &envoybootstrapv3.Bootstrap{
 		Node: &envoycorev3.Node{
 			Id:      "validation-node-id",
 			Cluster: "validation-cluster",
 		},
-		StaticResources: &envoy_config_bootstrap_v3.Bootstrap_StaticResources{
+		StaticResources: &envoybootstrapv3.Bootstrap_StaticResources{
 			Listeners: resources.Listeners,
 			Clusters:  resources.Clusters,
 			Secrets:   resources.Secrets,
@@ -87,7 +87,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	listener := &envoy_config_listener_v3.Listener{
+	listener := &envoylistenerv3.Listener{
 		Name: "placeholder_listener",
 		Address: &envoycorev3.Address{
 			Address: &envoycorev3.Address_SocketAddress{SocketAddress: &envoycorev3.SocketAddress{
@@ -95,13 +95,13 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 				PortSpecifier: &envoycorev3.SocketAddress_PortValue{PortValue: 8081},
 			}},
 		},
-		FilterChains: []*envoy_config_listener_v3.FilterChain{
+		FilterChains: []*envoylistenerv3.FilterChain{
 			{
 				Name: "placeholder_filter_chain",
-				Filters: []*envoy_config_listener_v3.Filter{
+				Filters: []*envoylistenerv3.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
-						ConfigType: &envoy_config_listener_v3.Filter_TypedConfig{
+						ConfigType: &envoylistenerv3.Filter_TypedConfig{
 							TypedConfig: hcmAny,
 						},
 					},
@@ -110,7 +110,7 @@ func FromFilter(filterName string, msg proto.Message) (string, error) {
 		},
 	}
 
-	return FromEnvoyResources(&EnvoyResources{Listeners: []*envoy_config_listener_v3.Listener{listener}})
+	return FromEnvoyResources(&EnvoyResources{Listeners: []*envoylistenerv3.Listener{listener}})
 }
 
 // FromSnapshot accepts an xds Snapshot and converts it into valid bootstrap json.
@@ -157,7 +157,7 @@ func FromSnapshot(
 // of listeners are mutated in this function.
 func extractRoutedClustersFromListeners(
 	routedCluster map[string]struct{},
-	listeners []*envoy_config_listener_v3.Listener,
+	listeners []*envoylistenerv3.Listener,
 	routes []*envoyroutev3.RouteConfiguration,
 ) error {
 	for _, l := range listeners {
@@ -266,9 +266,9 @@ func addBlackholeClusters(
 // getHcmForFilterChain accepts a pointer to a FilterChain and looks for the HttpConnectionManager
 // network filter if one exists. It returns a pointer to the HttpConnectionManager struct and
 // a pointer to the filter that actually contained it. This function has no side effects.
-func getHcmForFilterChain(fc *envoy_config_listener_v3.FilterChain) (
+func getHcmForFilterChain(fc *envoylistenerv3.FilterChain) (
 	*envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager,
-	*envoy_config_listener_v3.Filter,
+	*envoylistenerv3.Filter,
 	error,
 ) {
 	for _, f := range fc.GetFilters() {
@@ -316,7 +316,7 @@ func findTargetedClusters(r *envoyroutev3.RouteConfiguration, routedCluster map[
 // It adds the RouteConfiguration to the HttpConnectionManager as static, marshals the hcm, and sets the filter's
 // TypedConfig. f and hcm are mutated in this function.
 func setStaticRouteConfig(
-	f *envoy_config_listener_v3.Filter,
+	f *envoylistenerv3.Filter,
 	hcm *envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager,
 	r *envoyroutev3.RouteConfiguration,
 ) error {
@@ -329,7 +329,7 @@ func setStaticRouteConfig(
 		return err
 	}
 
-	f.ConfigType = &envoy_config_listener_v3.Filter_TypedConfig{
+	f.ConfigType = &envoylistenerv3.Filter_TypedConfig{
 		TypedConfig: hcmAny,
 	}
 	return nil

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -97,9 +97,9 @@ func (tr *TranslationResult) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(listenersData, &listeners); err != nil {
 			return err
 		}
-		tr.Listeners = make([]*envoy_config_listener_v3.Listener, len(listeners))
+		tr.Listeners = make([]*envoylistenerv3.Listener, len(listeners))
 		for i, listenerData := range listeners {
-			listener := &envoy_config_listener_v3.Listener{}
+			listener := &envoylistenerv3.Listener{}
 			if err := m.Unmarshal(listenerData, listener); err != nil {
 				return err
 			}

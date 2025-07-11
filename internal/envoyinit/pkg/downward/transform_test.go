@@ -1,7 +1,7 @@
 package downward_test
 
 import (
-	envoy_config_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	envoybootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -17,14 +17,14 @@ var _ = Describe("Transform", func() {
 	Context("bootstrap transforms", func() {
 		var (
 			api             *mockDownward
-			bootstrapConfig *envoy_config_bootstrap.Bootstrap
+			bootstrapConfig *envoybootstrapv3.Bootstrap
 		)
 		BeforeEach(func() {
 			api = &mockDownward{
 				podName: "Test",
 				nodeIp:  "5.5.5.5",
 			}
-			bootstrapConfig = new(envoy_config_bootstrap.Bootstrap)
+			bootstrapConfig = new(envoybootstrapv3.Bootstrap)
 			bootstrapConfig.Node = &envoycorev3.Node{}
 		})
 
@@ -60,7 +60,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("should transform static resources", func() {
-			bootstrapConfig.StaticResources = &envoy_config_bootstrap.Bootstrap_StaticResources{
+			bootstrapConfig.StaticResources = &envoybootstrapv3.Bootstrap_StaticResources{
 				Clusters: []*envoyclusterv3.Cluster{{
 					LoadAssignment: &envoyendpointv3.ClusterLoadAssignment{
 						Endpoints: []*envoyendpointv3.LocalityLbEndpoints{{

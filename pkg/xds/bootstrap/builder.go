@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"fmt"
 
-	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	envoybootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -37,7 +37,7 @@ func (b *ConfigBuilder) AddFilterConfig(name string, config proto.Message) {
 }
 
 // Build creates a partial bootstrap config suitable for validation.
-func (b *ConfigBuilder) Build() (*envoy_config_bootstrap_v3.Bootstrap, error) {
+func (b *ConfigBuilder) Build() (*envoybootstrapv3.Bootstrap, error) {
 	vhost := &envoyroutev3.VirtualHost{
 		Name:    "placeholder_vhost",
 		Domains: []string{"*"},
@@ -61,7 +61,7 @@ func (b *ConfigBuilder) Build() (*envoy_config_bootstrap_v3.Bootstrap, error) {
 		return nil, fmt.Errorf("failed to marshal HttpConnectionManager: %w", err)
 	}
 
-	staticResources := &envoy_config_bootstrap_v3.Bootstrap_StaticResources{
+	staticResources := &envoybootstrapv3.Bootstrap_StaticResources{
 		Listeners: []*envoy_config_listener_v3.Listener{{
 			Name: "placeholder_listener",
 			Address: &envoycorev3.Address{
@@ -87,7 +87,7 @@ func (b *ConfigBuilder) Build() (*envoy_config_bootstrap_v3.Bootstrap, error) {
 		staticResources.Clusters = b.clusters
 	}
 
-	return &envoy_config_bootstrap_v3.Bootstrap{
+	return &envoybootstrapv3.Bootstrap{
 		Node: &envoycorev3.Node{
 			Id:      "validation-node-id",
 			Cluster: "validation-cluster",

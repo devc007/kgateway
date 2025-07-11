@@ -62,16 +62,10 @@ linters:
           alias: metav1
         - pkg: k8s.io/api/batch/v1
           alias: batchv1
-        - pkg: github.com/envoyproxy/go-control-plane/envoy/config/core/v3
-          alias: envoycorev3
-        - pkg: github.com/envoyproxy/go-control-plane/envoy/config/route/v3
-          alias: envoyroutev3
-        - pkg: github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
-          alias: envoyclusterv3
+        - pkg: github.com/envoyproxy/go-control-plane/envoy/config/(\w+)/(v[\w\d]+)
+          alias: envoy$1$2
         - pkg: github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
           alias: envoytlsv3
-        - pkg: github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3
-          alias: envoyendpointv3
     misspell:
       ignore-rules:
         - kgateway

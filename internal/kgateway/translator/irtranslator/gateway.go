@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -37,7 +37,7 @@ type TranslationPassPlugins map[schema.GroupKind]*TranslationPass
 
 type TranslationResult struct {
 	Routes        []*envoyroutev3.RouteConfiguration
-	Listeners     []*envoy_config_listener_v3.Listener
+	Listeners     []*envoylistenerv3.Listener
 	ExtraClusters []*envoyclusterv3.Cluster
 }
 
@@ -86,11 +86,11 @@ func (t *Translator) ComputeListener(
 	gw ir.GatewayIR,
 	lis ir.ListenerIR,
 	reporter reports.Reporter,
-) (*envoy_config_listener_v3.Listener, []*envoyroutev3.RouteConfiguration) {
+) (*envoylistenerv3.Listener, []*envoyroutev3.RouteConfiguration) {
 	hasTls := false
 	gwreporter := reporter.Gateway(gw.SourceObject.Obj)
 	var routes []*envoyroutev3.RouteConfiguration
-	ret := &envoy_config_listener_v3.Listener{
+	ret := &envoylistenerv3.Listener{
 		Name:    lis.Name,
 		Address: computeListenerAddress(lis.BindAddress, lis.BindPort, gwreporter),
 	}
@@ -177,7 +177,7 @@ func (t *Translator) ComputeListener(
 	return ret, routes
 }
 
-func (t *Translator) runListenerPlugins(ctx context.Context, pass TranslationPassPlugins, gw ir.GatewayIR, l ir.ListenerIR, out *envoy_config_listener_v3.Listener) {
+func (t *Translator) runListenerPlugins(ctx context.Context, pass TranslationPassPlugins, gw ir.GatewayIR, l ir.ListenerIR, out *envoylistenerv3.Listener) {
 	var attachedPolicies ir.AttachedPolicies
 	attachedPolicies.Append(l.AttachedPolicies, gw.AttachedHttpPolicies)
 	for _, gk := range attachedPolicies.ApplyOrderedGroupKinds() {

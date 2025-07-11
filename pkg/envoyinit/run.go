@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	envoy_config_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	envoybootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoytlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
@@ -74,7 +74,7 @@ func RunEnvoy(envoyExecutable, inputPath, outputPath string) {
 	if caPath != "" {
 		log.Printf("Using OS CA certificate for proxy: %s", caPath)
 		//If the CA cert path is set, we need to set the CA cert path in the bootstrap config
-		var bootstrap envoy_config_bootstrap.Bootstrap
+		var bootstrap envoybootstrapv3.Bootstrap
 		err := protoutils.UnmarshalYaml([]byte(bootstrapConfig), &bootstrap)
 		if err != nil {
 			log.Fatalf("failed to unmarshal bootstrap config: %v", err)

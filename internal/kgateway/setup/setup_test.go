@@ -23,7 +23,7 @@ import (
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoylistener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -701,7 +701,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 	x.adsClient.Send(dr)
 
 	var clusters []*envoyclusterv3.Cluster
-	var listeners []*envoylistener.Listener
+	var listeners []*envoylistenerv3.Listener
 	var errs error
 
 	// run this in parallel with a 5s timeout
@@ -726,7 +726,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 			} else if dresp.GetTypeUrl() == "type.googleapis.com/envoy.config.listener.v3.Listener" {
 				needMoreListerners := false
 				for _, anyListener := range dresp.GetResources() {
-					var listener envoylistener.Listener
+					var listener envoylistenerv3.Listener
 					if err := anyListener.UnmarshalTo(&listener); err != nil {
 						errs = errors.Join(errs, fmt.Errorf("failed to unmarshal listener: %v", err))
 					}
@@ -846,7 +846,7 @@ func (x xdsDumper) Dump(t *testing.T, ctx context.Context) (xdsDump, error) {
 
 type xdsDump struct {
 	Clusters  []*envoyclusterv3.Cluster
-	Listeners []*envoylistener.Listener
+	Listeners []*envoylistenerv3.Listener
 	Endpoints []*envoyendpointv3.ClusterLoadAssignment
 	Routes    []*envoyroutev3.RouteConfiguration
 }
@@ -893,7 +893,7 @@ func (x *xdsDump) Compare(other xdsDump) error {
 		ourc.LoadAssignment = ourCla
 		otherc.LoadAssignment = otherCla
 	}
-	listenerset := map[string]*envoylistener.Listener{}
+	listenerset := map[string]*envoylistenerv3.Listener{}
 	for _, c := range x.Listeners {
 		listenerset[c.Name] = c
 	}
@@ -1019,7 +1019,7 @@ func (x *xdsDump) FromYaml(ya []byte) error {
 		x.Endpoints = append(x.Endpoints, r)
 	}
 	for _, c := range jsonM["listeners"] {
-		r, err := anyJsonRoundTrip[envoylistener.Listener](c)
+		r, err := anyJsonRoundTrip[envoylistenerv3.Listener](c)
 		if err != nil {
 			return err
 		}
@@ -1117,7 +1117,7 @@ func protoJsonRoundTrip(c proto.Message) (any, error) {
 	return roundtrip, nil
 }
 
-func getroutesnames(l *envoylistener.Listener) []string {
+func getroutesnames(l *envoylistenerv3.Listener) []string {
 	var routes []string
 	for _, fc := range l.GetFilterChains() {
 		for _, filter := range fc.GetFilters() {
@@ -1125,7 +1125,7 @@ func getroutesnames(l *envoylistener.Listener) []string {
 			if strings.HasSuffix(filter.GetTypedConfig().GetTypeUrl(), suffix) {
 				var hcm envoyhttp.HttpConnectionManager
 				switch config := filter.GetConfigType().(type) {
-				case *envoylistener.Filter_TypedConfig:
+				case *envoylistenerv3.Filter_TypedConfig:
 					if err := config.TypedConfig.UnmarshalTo(&hcm); err == nil {
 						rds := hcm.GetRds().GetRouteConfigName()
 						if rds != "" {

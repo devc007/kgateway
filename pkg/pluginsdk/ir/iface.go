@@ -7,7 +7,7 @@ import (
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"google.golang.org/protobuf/proto"
@@ -109,7 +109,7 @@ type ProxyTranslationPass interface {
 	ApplyListenerPlugin(
 		ctx context.Context,
 		pCtx *ListenerContext,
-		out *envoy_config_listener_v3.Listener,
+		out *envoylistenerv3.Listener,
 	)
 	// called 1 time per filter chain after listeners and allows tweaking HCM settings.
 	ApplyHCM(ctx context.Context,
@@ -172,7 +172,7 @@ type UnimplementedProxyTranslationPass struct{}
 
 var _ ProxyTranslationPass = UnimplementedProxyTranslationPass{}
 
-func (s UnimplementedProxyTranslationPass) ApplyListenerPlugin(ctx context.Context, pCtx *ListenerContext, out *envoy_config_listener_v3.Listener) {
+func (s UnimplementedProxyTranslationPass) ApplyListenerPlugin(ctx context.Context, pCtx *ListenerContext, out *envoylistenerv3.Listener) {
 }
 
 func (s UnimplementedProxyTranslationPass) ApplyHCM(ctx context.Context, pCtx *HcmContext, out *envoy_hcm.HttpConnectionManager) error {

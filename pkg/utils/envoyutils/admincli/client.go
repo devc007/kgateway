@@ -9,7 +9,7 @@ import (
 
 	adminv3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/solo-io/go-utils/threadsafe"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/wellknown"
@@ -290,7 +290,7 @@ func (c *Client) GetServerInfo(ctx context.Context) (*adminv3.ServerInfo, error)
 func (c *Client) GetSingleListenerFromDynamicListeners(
 	ctx context.Context,
 	listenerNameRegex string,
-) (*listenerv3.Listener, error) {
+) (*envoylistenerv3.Listener, error) {
 	queryParams := map[string]string{
 		"resource":   "dynamic_listeners",
 		"name_regex": listenerNameRegex,
@@ -315,7 +315,7 @@ func (c *Client) GetSingleListenerFromDynamicListeners(
 		return nil, fmt.Errorf("could not unmarshal envoy config_dump: %w", err)
 	}
 
-	listener := listenerv3.Listener{}
+	listener := envoylistenerv3.Listener{}
 	err = listenerDump.GetActiveState().GetListener().UnmarshalTo(&listener)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal listener from listener dump: %w", err)
