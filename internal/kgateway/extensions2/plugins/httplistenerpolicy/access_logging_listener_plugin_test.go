@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	v33 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	envoyaccesslogv3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyalfile "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
@@ -40,7 +40,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 		testCases := []struct {
 			name     string
 			config   []v1alpha1.AccessLog
-			expected []*v33.AccessLog
+			expected []*envoyaccesslogv3.AccessLog
 		}{
 			{
 				name:     "NilConfig",
@@ -63,10 +63,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 					},
 				},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.json",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
@@ -131,10 +131,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.http_grpc",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								AdditionalRequestHeadersToLog:   []string{"x-request-id"},
 								AdditionalResponseHeadersToLog:  []string{"x-response-id"},
@@ -155,7 +155,7 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 					},
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/file-access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
@@ -194,10 +194,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
@@ -238,10 +238,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
@@ -297,10 +297,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.http_grpc",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
@@ -342,10 +342,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.http_grpc",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
@@ -401,10 +401,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.http_grpc",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoygrpc.HttpGrpcAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "grpc-log",
@@ -455,10 +455,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 								AccessLogFormat: &envoyalfile.FileAccessLog_LogFormat{
@@ -484,11 +484,11 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 								},
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_StatusCodeFilter{
-								StatusCodeFilter: &v33.StatusCodeFilter{
-									Comparison: &v33.ComparisonFilter{
-										Op: v33.ComparisonFilter_EQ,
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_StatusCodeFilter{
+								StatusCodeFilter: &envoyaccesslogv3.StatusCodeFilter{
+									Comparison: &envoyaccesslogv3.ComparisonFilter{
+										Op: envoyaccesslogv3.ComparisonFilter_EQ,
 										Value: &envoycorev3.RuntimeUInt32{
 											DefaultValue: 5,
 										},
@@ -519,17 +519,17 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_HeaderFilter{
-								HeaderFilter: &v33.HeaderFilter{
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_HeaderFilter{
+								HeaderFilter: &envoyaccesslogv3.HeaderFilter{
 									Header: &envoyroutev3.HeaderMatcher{
 										Name: "x-test-header",
 										HeaderMatchSpecifier: &envoyroutev3.HeaderMatcher_StringMatch{
@@ -563,19 +563,19 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_DurationFilter{
-								DurationFilter: &v33.DurationFilter{
-									Comparison: &v33.ComparisonFilter{
-										Op: v33.ComparisonFilter_EQ,
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_DurationFilter{
+								DurationFilter: &envoyaccesslogv3.DurationFilter{
+									Comparison: &envoyaccesslogv3.ComparisonFilter{
+										Op: envoyaccesslogv3.ComparisonFilter_EQ,
 										Value: &envoycorev3.RuntimeUInt32{
 											DefaultValue: 5,
 										},
@@ -600,17 +600,17 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_NotHealthCheckFilter{
-								NotHealthCheckFilter: &v33.NotHealthCheckFilter{},
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_NotHealthCheckFilter{
+								NotHealthCheckFilter: &envoyaccesslogv3.NotHealthCheckFilter{},
 							},
 						},
 					},
@@ -630,17 +630,17 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_TraceableFilter{
-								TraceableFilter: &v33.TraceableFilter{},
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_TraceableFilter{
+								TraceableFilter: &envoyaccesslogv3.TraceableFilter{},
 							},
 						},
 					},
@@ -664,17 +664,17 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_ResponseFlagFilter{
-								ResponseFlagFilter: &v33.ResponseFlagFilter{
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_ResponseFlagFilter{
+								ResponseFlagFilter: &envoyaccesslogv3.ResponseFlagFilter{
 									Flags: []string{
 										"test-flag",
 									},
@@ -700,18 +700,18 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_GrpcStatusFilter{
-								GrpcStatusFilter: &v33.GrpcStatusFilter{
-									Statuses: []v33.GrpcStatusFilter_Status{v33.GrpcStatusFilter_NOT_FOUND},
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_GrpcStatusFilter{
+								GrpcStatusFilter: &envoyaccesslogv3.GrpcStatusFilter{
+									Statuses: []envoyaccesslogv3.GrpcStatusFilter_Status{envoyaccesslogv3.GrpcStatusFilter_NOT_FOUND},
 								},
 							},
 						},
@@ -734,19 +734,19 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.file",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoyalfile.FileAccessLog{
 								Path: "/var/log/access.log",
 							}),
 						},
-						Filter: &v33.AccessLogFilter{
-							FilterSpecifier: &v33.AccessLogFilter_ExtensionFilter{
-								ExtensionFilter: &v33.ExtensionFilter{
+						Filter: &envoyaccesslogv3.AccessLogFilter{
+							FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_ExtensionFilter{
+								ExtensionFilter: &envoyaccesslogv3.ExtensionFilter{
 									Name: wellknown.CELExtensionFilter,
-									ConfigType: &v33.ExtensionFilter_TypedConfig{
+									ConfigType: &envoyaccesslogv3.ExtensionFilter_TypedConfig{
 										TypedConfig: mustMessageToAny(t, &cel.ExpressionFilter{
 											Expression: "connection.mtls",
 										}),
@@ -775,10 +775,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.open_telemetry",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoy_open_telemetry.OpenTelemetryAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "otel-log",
@@ -888,10 +888,10 @@ func TestConvertJsonFormat_EdgeCases(t *testing.T) {
 						},
 					},
 				},
-				expected: []*v33.AccessLog{
+				expected: []*envoyaccesslogv3.AccessLog{
 					{
 						Name: "envoy.access_loggers.open_telemetry",
-						ConfigType: &v33.AccessLog_TypedConfig{
+						ConfigType: &envoyaccesslogv3.AccessLog_TypedConfig{
 							TypedConfig: mustMessageToAny(t, &envoy_open_telemetry.OpenTelemetryAccessLogConfig{
 								CommonConfig: &envoygrpc.CommonGrpcAccessLogConfig{
 									LogName: "otel-log",

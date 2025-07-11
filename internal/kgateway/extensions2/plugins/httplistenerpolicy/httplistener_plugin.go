@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	envoyaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	envoyaccesslogv3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -34,7 +34,7 @@ var logger = logging.New("plugin/httplistenerpolicy")
 
 type httpListenerPolicy struct {
 	ct                         time.Time
-	accessLog                  []*envoyaccesslog.AccessLog
+	accessLog                  []*envoyaccesslogv3.AccessLog
 	tracing                    *envoy_hcm.HttpConnectionManager_Tracing
 	upgradeConfigs             []*envoy_hcm.HttpConnectionManager_UpgradeConfig
 	useRemoteAddress           *bool
@@ -54,7 +54,7 @@ func (d *httpListenerPolicy) Equals(in any) bool {
 	}
 
 	// Check the AccessLog slice
-	if !slices.EqualFunc(d.accessLog, d2.accessLog, func(log *envoyaccesslog.AccessLog, log2 *envoyaccesslog.AccessLog) bool {
+	if !slices.EqualFunc(d.accessLog, d2.accessLog, func(log *envoyaccesslogv3.AccessLog, log2 *envoyaccesslogv3.AccessLog) bool {
 		return proto.Equal(log, log2)
 	}) {
 		return false

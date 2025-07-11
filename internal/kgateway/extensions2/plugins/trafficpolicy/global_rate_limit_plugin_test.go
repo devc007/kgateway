@@ -7,7 +7,7 @@ import (
 	"time"
 
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	ratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
+	envoyratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	ratev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	"github.com/stretchr/testify/assert"
@@ -570,7 +570,7 @@ func TestToRateLimitFilterConfig(t *testing.T) {
 								Domain:          domain,
 								Timeout:         timeout,
 								FailureModeDeny: !extension.FailOpen,
-								RateLimitService: &ratelimitv3.RateLimitServiceConfig{
+								RateLimitService: &envoyratelimitv3.RateLimitServiceConfig{
 									GrpcService: &envoycorev3.GrpcService{
 										TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 											EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{

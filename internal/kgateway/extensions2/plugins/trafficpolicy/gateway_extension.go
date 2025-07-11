@@ -6,7 +6,7 @@ import (
 	"time"
 
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	ratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
+	envoyratelimitv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	envoy_ext_authz_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	envoy_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	ratev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
@@ -160,7 +160,7 @@ func resolveRateLimitService(grpcService *envoycorev3.GrpcService, rateLimit *v1
 	envoyRateLimit := &ratev3.RateLimit{
 		Domain:          rateLimit.Domain,
 		FailureModeDeny: !rateLimit.FailOpen,
-		RateLimitService: &ratelimitv3.RateLimitServiceConfig{
+		RateLimitService: &envoyratelimitv3.RateLimitServiceConfig{
 			GrpcService:         grpcService,
 			TransportApiVersion: envoycorev3.ApiVersion_V3,
 		},

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
+	envoytracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	resource_detectorsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/tracers/opentelemetry/resource_detectors/v3"
 	samplersv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/tracers/opentelemetry/samplers/v3"
@@ -209,7 +209,7 @@ func translateTracing(
 func convertOTelTracingConfig(
 	config *v1alpha1.OpenTelemetryTracingConfig,
 	backend *ir.BackendObjectIR,
-) (*tracev3.Tracing_Http, error) {
+) (*envoytracev3.Tracing_Http, error) {
 	if config == nil {
 		return nil, nil
 	}
@@ -219,7 +219,7 @@ func convertOTelTracingConfig(
 		return nil, err
 	}
 
-	tracingCfg := &tracev3.OpenTelemetryConfig{
+	tracingCfg := &envoytracev3.OpenTelemetryConfig{
 		GrpcService: envoyGrpcService,
 		ServiceName: config.ServiceName,
 	}
@@ -253,9 +253,9 @@ func convertOTelTracingConfig(
 		return nil, err
 	}
 
-	return &tracev3.Tracing_Http{
+	return &envoytracev3.Tracing_Http{
 		Name: "envoy.tracers.opentelemetry",
-		ConfigType: &tracev3.Tracing_Http_TypedConfig{
+		ConfigType: &envoytracev3.Tracing_Http_TypedConfig{
 			TypedConfig: otelCfg,
 		},
 	}, nil

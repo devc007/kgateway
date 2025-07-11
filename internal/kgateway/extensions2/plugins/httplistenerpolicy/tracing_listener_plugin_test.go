@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	tracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
+	envoytracev3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	resource_detectorsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/tracers/opentelemetry/resource_detectors/v3"
 	samplersv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/tracers/opentelemetry/samplers/v3"
@@ -52,10 +52,10 @@ func TestTracingConverter(t *testing.T) {
 					},
 				},
 				expected: &envoy_hcm.HttpConnectionManager_Tracing{
-					Provider: &tracev3.Tracing_Http{
+					Provider: &envoytracev3.Tracing_Http{
 						Name: "envoy.tracers.opentelemetry",
-						ConfigType: &tracev3.Tracing_Http_TypedConfig{
-							TypedConfig: mustMessageToAny(t, &tracev3.OpenTelemetryConfig{
+						ConfigType: &envoytracev3.Tracing_Http_TypedConfig{
+							TypedConfig: mustMessageToAny(t, &envoytracev3.OpenTelemetryConfig{
 								GrpcService: &envoycorev3.GrpcService{
 									TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 										EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
@@ -87,10 +87,10 @@ func TestTracingConverter(t *testing.T) {
 					Attributes: nil,
 				},
 				expected: &envoy_hcm.HttpConnectionManager_Tracing{
-					Provider: &tracev3.Tracing_Http{
+					Provider: &envoytracev3.Tracing_Http{
 						Name: "envoy.tracers.opentelemetry",
-						ConfigType: &tracev3.Tracing_Http_TypedConfig{
-							TypedConfig: mustMessageToAny(t, &tracev3.OpenTelemetryConfig{
+						ConfigType: &envoytracev3.Tracing_Http_TypedConfig{
+							TypedConfig: mustMessageToAny(t, &envoytracev3.OpenTelemetryConfig{
 								GrpcService: &envoycorev3.GrpcService{
 									TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 										EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
@@ -122,10 +122,10 @@ func TestTracingConverter(t *testing.T) {
 					Attributes: []v1alpha1.CustomAttribute{},
 				},
 				expected: &envoy_hcm.HttpConnectionManager_Tracing{
-					Provider: &tracev3.Tracing_Http{
+					Provider: &envoytracev3.Tracing_Http{
 						Name: "envoy.tracers.opentelemetry",
-						ConfigType: &tracev3.Tracing_Http_TypedConfig{
-							TypedConfig: mustMessageToAny(t, &tracev3.OpenTelemetryConfig{
+						ConfigType: &envoytracev3.Tracing_Http_TypedConfig{
+							TypedConfig: mustMessageToAny(t, &envoytracev3.OpenTelemetryConfig{
 								GrpcService: &envoycorev3.GrpcService{
 									TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 										EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{
@@ -241,10 +241,10 @@ func TestTracingConverter(t *testing.T) {
 					SpawnUpstreamSpan: pointer.Bool(true),
 				},
 				expected: &envoy_hcm.HttpConnectionManager_Tracing{
-					Provider: &tracev3.Tracing_Http{
+					Provider: &envoytracev3.Tracing_Http{
 						Name: "envoy.tracers.opentelemetry",
-						ConfigType: &tracev3.Tracing_Http_TypedConfig{
-							TypedConfig: mustMessageToAny(t, &tracev3.OpenTelemetryConfig{
+						ConfigType: &envoytracev3.Tracing_Http_TypedConfig{
+							TypedConfig: mustMessageToAny(t, &envoytracev3.OpenTelemetryConfig{
 								GrpcService: &envoycorev3.GrpcService{
 									TargetSpecifier: &envoycorev3.GrpcService_EnvoyGrpc_{
 										EnvoyGrpc: &envoycorev3.GrpcService_EnvoyGrpc{

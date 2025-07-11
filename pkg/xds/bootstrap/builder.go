@@ -6,7 +6,7 @@ import (
 	envoybootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoylistenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyroutev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoywellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -62,7 +62,7 @@ func (b *ConfigBuilder) Build() (*envoybootstrapv3.Bootstrap, error) {
 	}
 
 	staticResources := &envoybootstrapv3.Bootstrap_StaticResources{
-		Listeners: []*envoy_config_listener_v3.Listener{{
+		Listeners: []*envoylistenerv3.Listener{{
 			Name: "placeholder_listener",
 			Address: &envoycorev3.Address{
 				Address: &envoycorev3.Address_SocketAddress{
@@ -72,11 +72,11 @@ func (b *ConfigBuilder) Build() (*envoybootstrapv3.Bootstrap, error) {
 					},
 				},
 			},
-			FilterChains: []*envoy_config_listener_v3.FilterChain{{
+			FilterChains: []*envoylistenerv3.FilterChain{{
 				Name: "placeholder_filter_chain",
-				Filters: []*envoy_config_listener_v3.Filter{{
+				Filters: []*envoylistenerv3.Filter{{
 					Name: envoywellknown.HTTPConnectionManager,
-					ConfigType: &envoy_config_listener_v3.Filter_TypedConfig{
+					ConfigType: &envoylistenerv3.Filter_TypedConfig{
 						TypedConfig: hcmAny,
 					},
 				}},
