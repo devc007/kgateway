@@ -1334,7 +1334,7 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.kgateway-dev.kgateway.v2.api.v1alpha1.KubernetesProxyConfig
   map:
     fields:
-    - name: agentGateway
+    - name: agentgateway
       type:
         namedType: com.github.kgateway-dev.kgateway.v2.api.v1alpha1.AgentGateway
     - name: aiExtension

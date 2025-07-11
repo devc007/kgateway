@@ -39,7 +39,7 @@ var logger = logging.New("agentgateway/syncer")
 type AgentGwSyncer struct {
 	commonCols            *common.CommonCollections
 	controllerName        string
-	agentGatewayClassName string
+	agentgatewayClassName string
 	xDS                   krt.Collection[agentGwXdsResources]
 	xdsCache              envoycache.SnapshotCache
 	istioClient           kube.Client
@@ -50,7 +50,7 @@ type AgentGwSyncer struct {
 func NewAgentGwSyncer(
 	ctx context.Context,
 	controllerName string,
-	agentGatewayClassName string,
+	agentgatewayClassName string,
 	mgr manager.Manager,
 	client kube.Client,
 	commonCols *common.CommonCollections,
@@ -60,7 +60,7 @@ func NewAgentGwSyncer(
 	return &AgentGwSyncer{
 		commonCols:            commonCols,
 		controllerName:        controllerName,
-		agentGatewayClassName: agentGatewayClassName,
+		agentgatewayClassName: agentgatewayClassName,
 		xdsCache:              xdsCache,
 		// mgr:            mgr,
 		istioClient: client,
@@ -155,7 +155,7 @@ func (s *AgentGwSyncer) Init(krtopts krtutil.KrtOptions) {
 	// TODO: convert auth to rbac json config for agentgateways
 
 	gatewaysCol := krt.NewCollection(s.commonCols.GatewayIndex.Gateways, func(kctx krt.HandlerContext, gw ir.Gateway) *ir.Gateway {
-		if string(gw.Obj.Spec.GatewayClassName) != s.agentGatewayClassName {
+		if string(gw.Obj.Spec.GatewayClassName) != s.agentgatewayClassName {
 			return nil
 		}
 		return &gw

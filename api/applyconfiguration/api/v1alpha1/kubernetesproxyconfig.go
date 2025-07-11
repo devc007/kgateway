@@ -14,7 +14,7 @@ type KubernetesProxyConfigApplyConfiguration struct {
 	Istio          *IstioIntegrationApplyConfiguration `json:"istio,omitempty"`
 	Stats          *StatsConfigApplyConfiguration      `json:"stats,omitempty"`
 	AiExtension    *AiExtensionApplyConfiguration      `json:"aiExtension,omitempty"`
-	AgentGateway   *AgentGatewayApplyConfiguration     `json:"agentGateway,omitempty"`
+	AgentGateway   *AgentGatewayApplyConfiguration     `json:"agentgateway,omitempty"`
 	FloatingUserId *bool                               `json:"floatingUserId,omitempty"`
 }
 

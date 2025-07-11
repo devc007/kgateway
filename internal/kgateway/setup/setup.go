@@ -54,7 +54,7 @@ func WithWaypointClassName(name string) func(*setup) {
 
 func WithAgentGatewayClassName(name string) func(*setup) {
 	return func(s *setup) {
-		s.agentGatewayClassName = name
+		s.agentgatewayClassName = name
 	}
 }
 
@@ -86,7 +86,7 @@ type setup struct {
 	gatewayControllerName  string
 	gatewayClassName       string
 	waypointClassName      string
-	agentGatewayClassName  string
+	agentgatewayClassName  string
 	extraPlugins           func(ctx context.Context, commoncol *common.CommonCollections) []sdk.Plugin
 	extraGatewayParameters func(cli client.Client, inputs *deployer.Inputs) []deployer.ExtraGatewayParameters
 	addToScheme            func(s *runtime.Scheme) error
@@ -100,7 +100,7 @@ func New(opts ...func(*setup)) *setup {
 		gatewayControllerName: wellknown.DefaultGatewayControllerName,
 		gatewayClassName:      wellknown.DefaultGatewayClassName,
 		waypointClassName:     wellknown.DefaultWaypointClassName,
-		agentGatewayClassName: wellknown.DefaultAgentGatewayClassName,
+		agentgatewayClassName: wellknown.DefaultAgentGatewayClassName,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -110,10 +110,10 @@ func New(opts ...func(*setup)) *setup {
 
 func (s *setup) Start(ctx context.Context) error {
 	if s.extraXDSCallbacks != nil {
-		return StartKgatewayWithXDSCallbacks(ctx, s.gatewayControllerName, s.gatewayClassName, s.waypointClassName, s.agentGatewayClassName, s.extraPlugins, s.extraGatewayParameters, s.addToScheme, s.extraXDSCallbacks)
+		return StartKgatewayWithXDSCallbacks(ctx, s.gatewayControllerName, s.gatewayClassName, s.waypointClassName, s.agentgatewayClassName, s.extraPlugins, s.extraGatewayParameters, s.addToScheme, s.extraXDSCallbacks)
 	}
 
-	return StartKgateway(ctx, s.gatewayControllerName, s.gatewayClassName, s.waypointClassName, s.agentGatewayClassName, s.extraPlugins, s.extraGatewayParameters, s.addToScheme)
+	return StartKgateway(ctx, s.gatewayControllerName, s.gatewayClassName, s.waypointClassName, s.agentgatewayClassName, s.extraPlugins, s.extraGatewayParameters, s.addToScheme)
 }
 
 func StartKgateway(
@@ -121,19 +121,19 @@ func StartKgateway(
 	gatewayControllerName string,
 	gatewayClassName string,
 	waypointClassName string,
-	agentGatewayClassName string,
+	agentgatewayClassName string,
 	extraPlugins func(ctx context.Context, commoncol *common.CommonCollections) []sdk.Plugin,
 	extraGatewayParameters func(cli client.Client, inputs *deployer.Inputs) []deployer.ExtraGatewayParameters,
 	addToScheme func(s *runtime.Scheme) error,
 ) error {
-	return StartKgatewayWithXDSCallbacks(ctx, gatewayControllerName, gatewayClassName, waypointClassName, agentGatewayClassName, extraPlugins, extraGatewayParameters, addToScheme, nil)
+	return StartKgatewayWithXDSCallbacks(ctx, gatewayControllerName, gatewayClassName, waypointClassName, agentgatewayClassName, extraPlugins, extraGatewayParameters, addToScheme, nil)
 }
 
 func StartKgatewayWithXDSCallbacks(ctx context.Context,
 	gatewayControllerName string,
 	gatewayClassName string,
 	waypointClassName string,
-	agentGatewayClassName string,
+	agentgatewayClassName string,
 	extraPlugins func(ctx context.Context, commoncol *common.CommonCollections) []sdk.Plugin,
 	extraGatewayParameters func(cli client.Client, inputs *deployer.Inputs) []deployer.ExtraGatewayParameters,
 	addToScheme func(s *runtime.Scheme) error,
@@ -169,7 +169,7 @@ func StartKgatewayWithXDSCallbacks(ctx context.Context,
 		gatewayControllerName,
 		gatewayClassName,
 		waypointClassName,
-		agentGatewayClassName,
+		agentgatewayClassName,
 		setupOpts,
 		restConfig,
 		uccBuilder,
@@ -192,7 +192,7 @@ func StartKgatewayWithConfig(
 	gatewayControllerName string,
 	gatewayClassName string,
 	waypointClassName string,
-	agentGatewayClassName string,
+	agentgatewayClassName string,
 	setupOpts *controller.SetupOpts,
 	restConfig *rest.Config,
 	uccBuilder krtcollections.UniquelyConnectedClientsBulider,
@@ -226,7 +226,7 @@ func StartKgatewayWithConfig(
 		ControllerName:           gatewayControllerName,
 		GatewayClassName:         gatewayClassName,
 		WaypointGatewayClassName: waypointClassName,
-		AgentGatewayClassName:    agentGatewayClassName,
+		AgentGatewayClassName:    agentgatewayClassName,
 		ExtraPlugins:             extraPlugins,
 		ExtraGatewayParameters:   extraGatewayParameters,
 		AddToScheme:              addToScheme,

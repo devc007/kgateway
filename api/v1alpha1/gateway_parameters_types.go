@@ -124,7 +124,7 @@ type KubernetesProxyConfig struct {
 	// default to configure the data plane proxy.
 	//
 	// +optional
-	AgentGateway *AgentGateway `json:"agentGateway,omitempty"`
+	AgentGateway *AgentGateway `json:"agentgateway,omitempty"`
 
 	// Used to unset the `runAsUser` values in security contexts.
 	FloatingUserId *bool `json:"floatingUserId,omitempty"`

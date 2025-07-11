@@ -1,5 +1,5 @@
 {{- $gateway := .Values.gateway }}
-{{- if $gateway.agentGateway.enabled }}
+{{- if $gateway.agentgateway.enabled }}
 
 apiVersion: apps/v1
 kind: Deployment
@@ -59,7 +59,7 @@ spec:
             - name: RUST_BACKTRACE
               value: "1"
             - name: RUST_LOG
-              value: {{ $gateway.agentGateway.logLevel }}
+              value: {{ $gateway.agentgateway.logLevel }}
             {{- if $gateway.env }}
             {{- toYaml $gateway.env | nindent 12 }}
             {{- end }} {{/* if $gateway.env */}}
@@ -121,4 +121,4 @@ data:
       "listeners": []
     }
 
-{{- end }} {{/* if $gateway.agentGateway.enabled */}}
+{{- end }} {{/* if $gateway.agentgateway.enabled */}}

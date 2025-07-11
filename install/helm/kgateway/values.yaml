@@ -89,5 +89,5 @@ inferenceExtension:
 discoveryNamespaceSelectors: []
 
 # -- Enable the integration with Agent Gateway, which lets you use kgateway to help manage agent connectivity across MCP servers, A2A agents, and REST APIs.
-agentGateway:
+agentgateway:
   enabled: false

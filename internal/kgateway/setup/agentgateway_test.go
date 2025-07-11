@@ -223,7 +223,7 @@ metadata:
   namespace: gwtest
 spec:
   kube:
-    agentGateway:
+    agentgateway:
       enabled: true
 ---
 kind: GatewayClass

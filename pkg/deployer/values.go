@@ -71,7 +71,7 @@ type HelmGateway struct {
 	AIExtension *HelmAIExtension `json:"aiExtension,omitempty"`
 
 	// agentgateway integration values
-	AgentGateway *HelmAgentGateway `json:"agentGateway,omitempty"`
+	AgentGateway *HelmAgentGateway `json:"agentgateway,omitempty"`
 }
 
 // helmPort represents a Gateway Listener port

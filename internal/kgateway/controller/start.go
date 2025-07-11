@@ -210,7 +210,7 @@ func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuil
 	proxySyncer.Init(ctx, cfg.KrtOptions)
 
 	if cfg.SetupOpts.GlobalSettings.EnableAgentGateway {
-		agentGatewaySyncer := agentgatewaysyncer.NewAgentGwSyncer(
+		agentgatewaySyncer := agentgatewaysyncer.NewAgentGwSyncer(
 			ctx,
 			cfg.ControllerName,
 			cfg.AgentGatewayClassName,
@@ -219,10 +219,10 @@ func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuil
 			commoncol,
 			cfg.SetupOpts.Cache,
 		)
-		agentGatewaySyncer.Init(cfg.KrtOptions)
+		agentgatewaySyncer.Init(cfg.KrtOptions)
 
-		if err := mgr.Add(agentGatewaySyncer); err != nil {
-			setupLog.Error(err, "unable to add agentGatewaySyncer runnable")
+		if err := mgr.Add(agentgatewaySyncer); err != nil {
+			setupLog.Error(err, "unable to add agentgatewaySyncer runnable")
 			return nil, err
 		}
 	}
@@ -349,7 +349,7 @@ func (c *ControllerBuilder) HasSynced() bool {
 
 // GetDefaultClassInfo returns the default GatewayClass for the kgateway controller.
 // Exported for testing.
-func GetDefaultClassInfo(globalSettings *settings.Settings, gatewayClassName string, waypointGatewayClassName string, agentGatewayClassName string) map[string]*ClassInfo {
+func GetDefaultClassInfo(globalSettings *settings.Settings, gatewayClassName string, waypointGatewayClassName string, agentgatewayClassName string) map[string]*ClassInfo {
 	classInfos := map[string]*ClassInfo{
 		gatewayClassName: {
 			Description: "Standard class for managing Gateway API ingress traffic.",
@@ -366,7 +366,7 @@ func GetDefaultClassInfo(globalSettings *settings.Settings, gatewayClassName str
 	}
 	// Only enable agentgateway gateway class if it's enabled in the settings
 	if globalSettings.EnableAgentGateway {
-		classInfos[agentGatewayClassName] = &ClassInfo{
+		classInfos[agentgatewayClassName] = &ClassInfo{
 			Description: "Specialized class for agentgateway.",
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},

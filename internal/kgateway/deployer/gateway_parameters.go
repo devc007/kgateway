@@ -292,7 +292,7 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 	statsConfig := kubeProxyConfig.GetStats()
 	istioContainerConfig := istioConfig.GetIstioProxyContainer()
 	aiExtensionConfig := kubeProxyConfig.GetAiExtension()
-	agentGatewayConfig := kubeProxyConfig.GetAgentGateway()
+	agentgatewayConfig := kubeProxyConfig.GetAgentGateway()
 
 	gateway := vals.Gateway
 	// deployment values
@@ -325,12 +325,12 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 	}
 	gateway.ComponentLogLevel = &compLogLevelStr
 
-	agentgatewayEnabled := agentGatewayConfig.GetEnabled()
+	agentgatewayEnabled := agentgatewayConfig.GetEnabled()
 	if agentgatewayEnabled != nil && *agentgatewayEnabled {
-		gateway.Resources = agentGatewayConfig.GetResources()
-		gateway.SecurityContext = agentGatewayConfig.GetSecurityContext()
-		gateway.Image = deployer.GetImageValues(agentGatewayConfig.GetImage())
-		gateway.Env = agentGatewayConfig.GetEnv()
+		gateway.Resources = agentgatewayConfig.GetResources()
+		gateway.SecurityContext = agentgatewayConfig.GetSecurityContext()
+		gateway.Image = deployer.GetImageValues(agentgatewayConfig.GetImage())
+		gateway.Env = agentgatewayConfig.GetEnv()
 	} else {
 		gateway.Resources = envoyContainerConfig.GetResources()
 		gateway.SecurityContext = envoyContainerConfig.GetSecurityContext()
@@ -351,7 +351,7 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 
 	// TODO(npolshak): Currently we are using the same chart for both data planes. Should revisit having a separate chart for agentgateway: https://github.com/kgateway-dev/kgateway/issues/11240
 	// agentgateway integration values
-	gateway.AgentGateway, err = deployer.GetAgentGatewayValues(agentGatewayConfig)
+	gateway.AgentGateway, err = deployer.GetAgentGatewayValues(agentgatewayConfig)
 	if err != nil {
 		return nil, err
 	}

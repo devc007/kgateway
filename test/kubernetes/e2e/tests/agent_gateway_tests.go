@@ -6,8 +6,8 @@ import (
 )
 
 func AgentGatewaySuiteRunner() e2e.SuiteRunner {
-	agentGatewaySuiteRunner := e2e.NewSuiteRunner(false)
-	agentGatewaySuiteRunner.Register("AgentGateway", agentgateway.NewTestingSuite)
+	agentgatewaySuiteRunner := e2e.NewSuiteRunner(false)
+	agentgatewaySuiteRunner.Register("AgentGateway", agentgateway.NewTestingSuite)
 
-	return agentGatewaySuiteRunner
+	return agentgatewaySuiteRunner
 }
