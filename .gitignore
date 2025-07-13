@@ -54,3 +54,6 @@ dist/
 *.o
 *.d
 *-build
+
+
+internal/envoyinit/rustformations/target/*
