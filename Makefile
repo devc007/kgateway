@@ -122,9 +122,18 @@ fmt-changed:  ## Format the code with goimports
 .PHONY: mod-download
 mod-download:  ## Download the dependencies
 	go mod download all
+	@cd hack/utils/applier; \
+	go mod download all
+	@cd test/mocks/mock-ai-provider-server; \
+	go mod download all
+
+.PHONY: mod-tidy-nested
+mod-tidy-nested:  ## Tidy go mod files in nested modules
+	@echo "Tidying hack/utils/applier..." && cd hack/utils/applier && go mod tidy
+	@echo "Tidying test/mocks/mock-ai-provider-server..." && cd test/mocks/mock-ai-provider-server && go mod tidy
 
 .PHONY: mod-tidy
-mod-tidy: mod-download  ## Tidy the go mod file
+mod-tidy: mod-download mod-tidy-nested ## Tidy the go mod file
 	go mod tidy
 
 #----------------------------------------------------------------------------
