@@ -31,13 +31,21 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/plugins"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils"
 	pluginsdkir "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/policy"
 	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
 )
 
 const statefulSessionFilterName = "envoy.filters.http.stateful_session"
 
 type applyToRoute interface {
-	apply(outputRoute *envoyroutev3.Route)
+	apply(outputRoute *envoyroutev3.Route, mergeOpts policy.MergeOptions)
+	// apply may be invoked multiple times on the route, once for each policy.
+	// For delegated routes, policies attached to the parent route are inherited
+	// and may override the current policy on the output route if MergeOptions allows it,
+	// and hence the apply implementation must use policy.IsSettable(field, mergeOpts)
+	// to check if the field on the output route can be set before being set.
+	// Currently, the apply method is invoked in order of priority from highest(child route policies)
+	// to lowest(parent route policies).
 }
 
 type applyToRouteBackend interface {
@@ -65,7 +73,7 @@ func (f *filterIr) apply(outputRoute *envoyroutev3.Route) {
 	if f.policy == nil {
 		return
 	}
-	f.policy.apply(outputRoute)
+	f.policy.apply(outputRoute, mergeOpts)
 }
 
 type builtinPlugin struct {
@@ -149,9 +157,10 @@ func (r ruleIr) apply(outputRoute *envoyroutev3.Route) error {
 	if outputRoute == nil || outputRoute.GetRoute() == nil {
 		return nil
 	}
-	r.applyTimeouts(outputRoute, r.retry != nil)
-	r.applyRetry(outputRoute)
-	if r.sessionPersistence != nil {
+	r.applyTimeouts(outputRoute, r.retry != nil, mergeOpts)
+	r.applyRetry(outputRoute, mergeOpts)
+
+	if r.sessionPersistence != nil && policy.IsSettable(outputRoute.GetTypedPerFilterConfig()[statefulSessionFilterName], mergeOpts) {
 		if outputRoute.GetTypedPerFilterConfig() == nil {
 			outputRoute.TypedPerFilterConfig = map[string]*anypb.Any{}
 		}
@@ -160,9 +169,9 @@ func (r ruleIr) apply(outputRoute *envoyroutev3.Route) error {
 	return nil
 }
 
-func convertTimeouts(timeout *gwv1.HTTPRouteTimeouts) timeouts {
+func convertTimeouts(timeout *gwv1.HTTPRouteTimeouts) *timeouts {
 	if timeout == nil {
-		return timeouts{}
+		return nil
 	}
 	var requestTimeout *durationpb.Duration
 	var backendRequestTimeout *durationpb.Duration
@@ -179,15 +188,16 @@ func convertTimeouts(timeout *gwv1.HTTPRouteTimeouts) timeouts {
 		}
 	}
 
-	return timeouts{
+	return &timeouts{
 		requestTimeout:        requestTimeout,
 		backendRequestTimeout: backendRequestTimeout,
 	}
 }
 
-func (r ruleIr) applyTimeouts(route *envoyroutev3.Route, hasRetry bool) {
+func (r ruleIr) applyTimeouts(route *envoyroutev3.Route, hasRetry bool, mergeOpts policy.MergeOptions,) {
 	timeouts := r.timeouts
-	if timeouts.backendRequestTimeout == nil && timeouts.requestTimeout == nil {
+	if timeouts == nil || timeouts.backendRequestTimeout == nil && timeouts.requestTimeout == nil ||
+		!policy.IsSettable(route.GetRoute().GetTimeout(), mergeOpts) {
 		return
 	}
 
@@ -266,8 +276,8 @@ func convertRetry(retry *gwv1.HTTPRouteRetry, timeout *gwv1.HTTPRouteTimeouts) *
 	return retryPolicy
 }
 
-func (r ruleIr) applyRetry(route *envoyroutev3.Route) {
-	if r.retry == nil {
+func (r ruleIr) applyRetry(route *envoyroutev3.Route, mergeOpts policy.MergeOptions) {
+	if r.retry == nil || !policy.IsSettable(route.GetRoute().GetRetryPolicy(), mergeOpts) {
 		return
 	}
 	route.GetRoute().RetryPolicy = r.retry
@@ -412,8 +422,9 @@ type mirrorIr struct {
 	RuntimeFraction *envoycorev3.RuntimeFractionalPercent
 }
 
-func (m *mirrorIr) apply(outputRoute *envoyroutev3.Route) {
-	if outputRoute == nil || outputRoute.GetRoute() == nil {
+func (m *mirrorIr) apply(outputRoute *envoyroutev3.Route, mergeOpts policy.MergeOptions) {
+	if outputRoute == nil || outputRoute.GetRoute() == nil ||
+		!policy.IsSettable(outputRoute.GetRoute().GetRequestMirrorPolicies(), mergeOpts) {
 		return
 	}
 	mirror := &envoyroutev3.RouteAction_RequestMirrorPolicy{
@@ -450,7 +461,7 @@ type headerModifierIr struct {
 	IsRequest bool // true=request, false=response
 }
 
-func (h *headerModifierIr) apply(outputRoute *envoyroutev3.Route) {
+func (h *headerModifierIr) apply(outputRoute *envoyroutev3.Route, _ policy.MergeOptions) {
 	if outputRoute == nil {
 		return
 	}
@@ -549,21 +560,32 @@ func (p *builtinPlugin) Name() string {
 // called one or more times per route rule
 func (p *builtinPluginGwPass) ApplyForRoute(ctx context.Context, pCtx *ir.RouteContext, outputRoute *envoyroutev3.Route) error {
 	policy, ok := pCtx.Policy.(*builtinPlugin)
+=======
+// ApplyForRoute may be invoked multiple times on the route, once for each policy since
+// the builtin plugin does not implement MergePolicies.
+// For delegated routes, policies attached to the parent route are inherited
+// and may override the current policy on the output route if pCtx.InheritedPolicyPriority allows it
+// Currently, ApplyForRoute is invoked per policy in order of priority from highest(child route policies)
+// to lowest(parent route policies)
 	if !ok {
 		return nil
 	}
 
-	var errs error
-	if policy.filter != nil {
-		policy.filter.apply(outputRoute)
+	mergeOpts := policy.MergeOptions{
+		Strategy: policy.GetMergeStrategy(pCtx.InheritedPolicyPriority, false),
 	}
 
-	policy.rule.apply(outputRoute)
+	var errs error
+	if pol.filter != nil {
+		pol.filter.apply(outputRoute, mergeOpts)
+	}
+
+	pol.rule.apply(outputRoute, mergeOpts)
 	if outputRoute.GetTypedPerFilterConfig()[statefulSessionFilterName] != nil {
 		p.needStatefulSession[pCtx.FilterChainName] = true
 	}
 
-	if policy.hasCors {
+	if pol.hasCors {
 		p.hasCorsPolicy[pCtx.FilterChainName] = true
 	}
 
@@ -674,8 +696,8 @@ type requestRedirectIr struct {
 	Redir *envoyroutev3.RedirectAction
 }
 
-func (r *requestRedirectIr) apply(outputRoute *envoyroutev3.Route) {
-	if outputRoute == nil {
+func (r *requestRedirectIr) apply(outputRoute *envoyroutev3.Route, mergeOpts policy.MergeOptions) {
+	if outputRoute == nil || !policy.IsSettable(outputRoute.GetRedirect(), mergeOpts) {
 		return
 	}
 	outputRoute.Action = &envoyroutev3.Route_Redirect{
@@ -705,14 +727,15 @@ type urlRewriteIr struct {
 	PrefixReplace string
 }
 
-func (u *urlRewriteIr) apply(outputRoute *envoyroutev3.Route) {
+func (u *urlRewriteIr) apply(outputRoute *envoyroutev3.Route, mergeOpts policy.MergeOptions) {
 	if outputRoute == nil || outputRoute.GetRoute() == nil {
 		return
 	}
-	if u.HostRewrite != nil {
+
+	if u.HostRewrite != nil && policy.IsSettable(outputRoute.GetRoute().GetHostRewriteSpecifier(), mergeOpts) {
 		outputRoute.GetRoute().HostRewriteSpecifier = u.HostRewrite
 	}
-	if u.FullReplace != "" {
+	if u.FullReplace != "" && policy.IsSettable(outputRoute.GetRoute().GetRegexRewrite(), mergeOpts) {
 		outputRoute.GetRoute().RegexRewrite = &envoy_type_matcher_v3.RegexMatchAndSubstitute{
 			Pattern: &envoy_type_matcher_v3.RegexMatcher{
 				EngineType: &envoy_type_matcher_v3.RegexMatcher_GoogleRe2{GoogleRe2: &envoy_type_matcher_v3.RegexMatcher_GoogleRE2{}},
@@ -729,7 +752,7 @@ func (u *urlRewriteIr) apply(outputRoute *envoyroutev3.Route) {
 		if path == "" {
 			path = outputRoute.GetMatch().GetPathSeparatedPrefix()
 		}
-		if path != "" && u.PrefixReplace == "/" {
+		if path != "" && u.PrefixReplace == "/" && policy.IsSettable(outputRoute.GetRoute().GetRegexRewrite(), mergeOpts) {
 			outputRoute.GetRoute().RegexRewrite = &envoy_type_matcher_v3.RegexMatchAndSubstitute{
 				Pattern: &envoy_type_matcher_v3.RegexMatcher{
 					EngineType: &envoy_type_matcher_v3.RegexMatcher_GoogleRe2{GoogleRe2: &envoy_type_matcher_v3.RegexMatcher_GoogleRE2{}},
@@ -737,7 +760,7 @@ func (u *urlRewriteIr) apply(outputRoute *envoyroutev3.Route) {
 				},
 				Substitution: "/",
 			}
-		} else {
+		} else if policy.IsSettable(outputRoute.GetRoute().GetPrefixRewrite(), mergeOpts) {
 			outputRoute.GetRoute().PrefixRewrite = u.PrefixReplace
 		}
 	}
@@ -776,8 +799,8 @@ type corsIr struct {
 	Cors *anypb.Any
 }
 
-func (c *corsIr) apply(outputRoute *envoyroutev3.Route) {
-	if c.Cors == nil {
+func (c *corsIr) apply(outputRoute *envoyroutev3.Route, mergeOpts policy.MergeOptions) {
+	if c.Cors == nil || !policy.IsSettable(outputRoute.GetTypedPerFilterConfig()[envoy_wellknown.CORS], mergeOpts) {
 		return
 	}
 
