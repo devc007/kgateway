@@ -264,7 +264,11 @@ func (p *TrafficPolicy) Name() string {
 	return "trafficpolicies"
 }
 
-func (p *trafficPolicyPluginGwPass) ApplyRouteConfigPlugin(ctx context.Context, pCtx *ir.RouteConfigContext, out *envoyroutev3.RouteConfiguration) {
+func (p *trafficPolicyPluginGwPass) ApplyRouteConfigPlugin(
+	ctx context.Context,
+	pCtx *ir.RouteConfigContext,
+	out *envoyroutev3.RouteConfiguration,
+) {
 	policy, ok := pCtx.Policy.(*TrafficPolicy)
 	if !ok {
 		return
@@ -273,7 +277,11 @@ func (p *trafficPolicyPluginGwPass) ApplyRouteConfigPlugin(ctx context.Context, 
 	p.handlePolicies(pCtx.FilterChainName, &pCtx.TypedFilterConfig, policy.spec)
 }
 
-func (p *trafficPolicyPluginGwPass) ApplyVhostPlugin(ctx context.Context, pCtx *ir.VirtualHostContext, out *envoyroutev3.VirtualHost) {
+func (p *trafficPolicyPluginGwPass) ApplyVhostPlugin(
+	ctx context.Context,
+	pCtx *ir.VirtualHostContext,
+	out *envoyroutev3.VirtualHost,
+) {
 	policy, ok := pCtx.Policy.(*TrafficPolicy)
 	if !ok {
 		return
@@ -371,7 +379,7 @@ func (p *trafficPolicyPluginGwPass) ApplyForRoute(ctx context.Context, pCtx *ir.
 	if policy.spec.autoHostRewrite != nil && policy.spec.autoHostRewrite.GetValue() {
 		// Only apply TrafficPolicy's AutoHostRewrite if built-in policy's AutoHostRewrite is not already set
 		if ra := outputRoute.GetRoute(); ra != nil && ra.GetHostRewriteSpecifier() == nil {
-			ra.HostRewriteSpecifier = &routev3.RouteAction_AutoHostRewrite{
+			ra.HostRewriteSpecifier = &envoyroutev3.RouteAction_AutoHostRewrite{
 				AutoHostRewrite: policy.spec.autoHostRewrite,
 			}
 		}
