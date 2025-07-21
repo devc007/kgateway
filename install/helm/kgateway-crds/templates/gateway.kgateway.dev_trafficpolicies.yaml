@@ -353,6 +353,9 @@ spec:
                     type: integer
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+                x-kubernetes-validations:
+                - message: maxAge must be less than or equal to 2147483647
+                  rule: '!has(self.maxAge) || self.maxAge <= 2147483647'
               csrf:
                 properties:
                   additionalOrigins:

@@ -355,6 +355,7 @@ type RateLimitDescriptorEntryGeneric struct {
 
 type CorsPolicy struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:XValidation:rule="!has(self.maxAge) || self.maxAge <= 2147483647", message="maxAge must be less than or equal to 2147483647"
 	*gwv1.HTTPCORSFilter `json:",inline"`
 }
 
