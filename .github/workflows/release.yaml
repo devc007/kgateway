@@ -97,7 +97,7 @@ jobs:
 
       - name: Push kgateway chart to registry
         if: ${{ github.event_name != 'pull_request' }}
-        run: make release-charts
+        run: make release-charts IMAGE_REGISTRY=${{ env.IMAGE_REGISTRY }}
         env:
           VERSION: ${{ needs.setup.outputs.version }}
   goreleaser:
