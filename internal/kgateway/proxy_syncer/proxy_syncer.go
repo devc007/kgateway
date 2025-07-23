@@ -34,7 +34,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/extensions2/common"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/krtcollections"
-	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/reports"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/translator"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/translator/irtranslator"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils"
@@ -43,6 +42,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	plug "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
+	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
 )
 
 // ProxySyncer orchestrates the translation of K8s Gateway CRs to xDS
@@ -212,7 +212,10 @@ var logger = logging.New("proxy_syncer")
 
 func (s *ProxySyncer) Init(ctx context.Context, krtopts krtutil.KrtOptions) {
 	// all backends with policies attached in a single collection
-	finalBackends := krt.JoinCollection(s.commonCols.BackendIndex.BackendsWithPolicy(), krtopts.ToOptions("FinalBackends")...)
+	finalBackends := krt.JoinCollection(s.commonCols.BackendIndex.BackendsWithPolicy(),
+		// WithJoinUnchecked enables a more optimized lookup on the hotpath by assuming we do not have any overlapping ResourceName
+		// in the backend collection.
+		append(krtopts.ToOptions("FinalBackends"), krt.WithJoinUnchecked())...)
 
 	s.translator.Init(ctx)
 
@@ -641,12 +644,15 @@ func (s *ProxySyncer) syncGatewayStatus(ctx context.Context, logger *slog.Logger
 				if !isGatewayStatusEqual(&gwStatusWithoutAddress, status) {
 					gw.Status = *status
 					if err := s.mgr.GetClient().Status().Patch(ctx, &gw, client.Merge); err != nil {
+						if apierrors.IsConflict(err) {
+							return err // Expected conflict, retry will handle.
+						}
 						logger.Error("error patching gateway status", "error", err, "gateway", gwnn.String())
 						return err
 					}
 					logger.Info("patched gw status", "gateway", gwnn.String())
 				} else {
-					logger.Info("skipping k8s gateway status update, status equal", "gateway", gwnn.String())
+					logger.Debug("skipping k8s gateway status update, status equal", "gateway", gwnn.String())
 				}
 			}
 		}
@@ -684,12 +690,15 @@ func (s *ProxySyncer) syncListenerSetStatus(ctx context.Context, logger *slog.Lo
 				if !isListenerSetStatusEqual(&lsStatus, status) {
 					ls.Status = *status
 					if err := s.mgr.GetClient().Status().Patch(ctx, &ls, client.Merge); err != nil {
+						if apierrors.IsConflict(err) {
+							return err // Expected conflict, retry will handle.
+						}
 						logger.Error("error patching listener set status", "error", err, "gateway", lsnn.String())
 						return err
 					}
 					logger.Info("patched ls status", "listenerset", lsnn.String())
 				} else {
-					logger.Info("skipping k8s ls status update, status equal", "listenerset", lsnn.String())
+					logger.Debug("skipping k8s ls status update, status equal", "listenerset", lsnn.String())
 				}
 			}
 		}
