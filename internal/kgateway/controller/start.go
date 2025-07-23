@@ -29,6 +29,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/ir"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/krtcollections"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/proxy_syncer"
+	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/translator/metrics"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/client/clientset/versioned"
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
@@ -99,10 +100,12 @@ type ControllerBuilder struct {
 
 func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuilder, error) {
 	loggingOptions := istiolog.DefaultOptions()
+	loggingOptions.JSONEncoding = true
 	if cfg.Dev {
 		setupLog.Info("starting log in dev mode")
 		loggingOptions.SetDefaultOutputLevel(istiolog.OverrideScopeName, istiolog.DebugLevel)
 		logging.MustSetLevel(ControllerRuntimeLogger, slog.LevelDebug)
+		loggingOptions.JSONEncoding = false
 	}
 	istiolog.Configure(loggingOptions)
 
@@ -193,6 +196,10 @@ func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuil
 	}
 	mergedPlugins := pluginFactoryWithBuiltin(cfg)(ctx, commoncol)
 	commoncol.InitPlugins(ctx, mergedPlugins, globalSettings)
+
+	// Begin background processing of resource sync metrics.
+	// This only effects metrics in the resources subsystem and is not required for other metrics.
+	metrics.StartResourceSyncMetricsProcessing(ctx)
 
 	// Create the proxy syncer for the Gateway API resources
 	setupLog.Info("initializing proxy syncer")
