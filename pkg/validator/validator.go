@@ -76,7 +76,7 @@ func (b *binaryValidator) Validate(ctx context.Context, yaml string) error {
 	var e bytes.Buffer
 	cmd.Stderr = &e
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidXDS, e.String())
+		return fmt.Errorf("%v: %w", ErrInvalidXDS, err)
 	}
 	return nil
 }
