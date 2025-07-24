@@ -134,7 +134,7 @@ spec:
     initialConnectionWindowSize: 1000
     initialStreamWindowSize: 2147483648
 `,
-			wantError: "InitialConnectionWindowSize must be between 65535 and 2147483647 bytes (inclusive)",
+			wantErrors: []string{"InitialConnectionWindowSize must be between 65535 and 2147483647 bytes (inclusive)"},
 		},
 		{
 			name: "BackendConfigPolicy: valid target references",
