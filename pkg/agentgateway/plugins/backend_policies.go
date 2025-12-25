@@ -295,9 +295,22 @@ func translateBackendMCPAuthentication(ctx PolicyCtx, policy *agentgateway.Agent
 		idp = api.BackendPolicySpec_McpAuthentication_KEYCLOAK
 	}
 
-	translatedInlineJwks, err := resolveRemoteJWKSInline(ctx, authnPolicy.JWKS.JwksUri)
+	var lookupKey string
+	if authnPolicy.JWKS != nil && authnPolicy.JWKS.JwksUri != "" {
+		lookupKey = authnPolicy.JWKS.JwksUri
+	} else {
+		lookupKey = string(authnPolicy.Issuer)
+	}
+
+	if lookupKey == "" {
+		// Should be caught by validation
+		logger.Error("no jwks uri or issuer provided")
+		return nil
+	}
+
+	translatedInlineJwks, err := resolveRemoteJWKSInline(ctx, lookupKey)
 	if err != nil {
-		logger.Error("failed resolving jwks", "jwks_uri", authnPolicy.JWKS.JwksUri, "error", err)
+		logger.Error("failed resolving jwks", "lookup_key", lookupKey, "error", err)
 		return nil
 	}
 

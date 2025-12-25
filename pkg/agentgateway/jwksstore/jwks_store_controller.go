@@ -66,14 +66,22 @@ func (j *JwksStoreController) Init(ctx context.Context) {
 
 			// enqueue Backend MCP authentication JWKS (if present)
 			if p.Spec.Backend != nil && p.Spec.Backend.MCP != nil && p.Spec.Backend.MCP.Authentication != nil {
+				authn := p.Spec.Backend.MCP.Authentication
 				ttl := time.Duration(0)
-				if p.Spec.Backend.MCP.Authentication.JWKS.CacheDuration != nil {
-					ttl = p.Spec.Backend.MCP.Authentication.JWKS.CacheDuration.Duration
+				if authn.JWKS != nil && authn.JWKS.CacheDuration != nil {
+					ttl = authn.JWKS.CacheDuration.Duration
 				}
-				if p.Spec.Backend.MCP.Authentication.JWKS.JwksUri != "" {
+
+				if authn.JWKS != nil && authn.JWKS.JwksUri != "" {
 					toret = append(toret, jwks.JwksSource{
-						JwksURL: p.Spec.Backend.MCP.Authentication.JWKS.JwksUri,
+						JwksURL: authn.JWKS.JwksUri,
 						Ttl:     ttl,
+					})
+				} else if authn.Issuer != "" {
+					toret = append(toret, jwks.JwksSource{
+						JwksURL:     string(authn.Issuer),
+						Ttl:         ttl,
+						IsDiscovery: true,
 					})
 				}
 			}
@@ -86,14 +94,22 @@ func (j *JwksStoreController) Init(ctx context.Context) {
 				continue
 			}
 			if b.Spec.Policies != nil && b.Spec.Policies.MCP != nil && b.Spec.Policies.MCP.Authentication != nil {
+				authn := b.Spec.Policies.MCP.Authentication
 				ttl := time.Duration(0)
-				if b.Spec.Policies.MCP.Authentication.JWKS.CacheDuration != nil {
-					ttl = b.Spec.Policies.MCP.Authentication.JWKS.CacheDuration.Duration
+				if authn.JWKS != nil && authn.JWKS.CacheDuration != nil {
+					ttl = authn.JWKS.CacheDuration.Duration
 				}
-				if b.Spec.Policies.MCP.Authentication.JWKS.JwksUri != "" {
+
+				if authn.JWKS != nil && authn.JWKS.JwksUri != "" {
 					toret = append(toret, jwks.JwksSource{
-						JwksURL: b.Spec.Policies.MCP.Authentication.JWKS.JwksUri,
+						JwksURL: authn.JWKS.JwksUri,
 						Ttl:     ttl,
+					})
+				} else if authn.Issuer != "" {
+					toret = append(toret, jwks.JwksSource{
+						JwksURL:     string(authn.Issuer),
+						Ttl:         ttl,
+						IsDiscovery: true,
 					})
 				}
 			}

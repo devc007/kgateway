@@ -837,8 +837,8 @@ type MCPAuthentication struct {
 	Audiences []string `json:"audiences,omitempty"`
 
 	// jwks defines the remote JSON Web Key used to validate the signature of the JWT.
-	// +required
-	JWKS RemoteJWKS `json:"jwks"`
+	// +optional
+	JWKS *RemoteJWKS `json:"jwks,omitempty"`
 }
 
 type McpIDP string

@@ -33,12 +33,14 @@ type FetchingSchedule []fetchAt
 //go:generate go tool github.com/golang/mock/mockgen -destination mocks/mock_jwks_http_client.go -package mocks -source ./jwks_fetcher.go
 type JwksHttpClient interface {
 	FetchJwks(ctx context.Context, jwksURL string) (jose.JSONWebKeySet, error)
+	FetchDiscoveryMetadata(ctx context.Context, issuer string) (string, error)
 }
 
 type JwksSource struct {
-	JwksURL string
-	Ttl     time.Duration
-	Deleted bool
+	JwksURL     string
+	Ttl         time.Duration
+	Deleted     bool
+	IsDiscovery bool
 }
 
 type JwksSources []JwksSource
@@ -128,7 +130,14 @@ func (f *JwksFetcher) maybeFetchJwks(ctx context.Context) {
 		if fetch.keysetSource.Deleted {
 			continue
 		}
-		jwks, err := f.jwksClient.FetchJwks(ctx, fetch.keysetSource.JwksURL)
+		var jwks jose.JSONWebKeySet
+		var err error
+		if fetch.keysetSource.IsDiscovery {
+			jwks, err = f.fetchJwksFromDiscovery(ctx, fetch.keysetSource.JwksURL)
+		} else {
+			jwks, err = f.jwksClient.FetchJwks(ctx, fetch.keysetSource.JwksURL)
+		}
+
 		if err != nil {
 			log.Error(err, "error fetching jwks from ", fetch.keysetSource.JwksURL)
 			if fetch.retryAttempt < 5 { // backoff by 5s * retry attempt number
@@ -190,13 +199,13 @@ func (f *JwksFetcher) UpdateJwksSources(ctx context.Context, updates JwksSources
 
 	for _, s := range updates {
 		if _, ok := f.keysetSources[s.JwksURL]; !ok {
-			if err := f.addKeyset(s.JwksURL, s.Ttl); err != nil {
+			if err := f.addKeyset(s.JwksURL, s.Ttl, s.IsDiscovery); err != nil {
 				errs = append(errs, err)
 			}
 			continue
 		}
 		if *f.keysetSources[s.JwksURL] != s {
-			if err := f.updateKeyset(s.JwksURL, s.Ttl); err != nil {
+			if err := f.updateKeyset(s.JwksURL, s.Ttl, s.IsDiscovery); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -218,12 +227,12 @@ func (f *JwksFetcher) UpdateJwksSources(ctx context.Context, updates JwksSources
 	return errors.Join(errs...)
 }
 
-func (f *JwksFetcher) addKeyset(jwksUrl string, ttl time.Duration) error {
+func (f *JwksFetcher) addKeyset(jwksUrl string, ttl time.Duration, isDiscovery bool) error {
 	if _, err := url.Parse(jwksUrl); err != nil {
 		return fmt.Errorf("error parsing jwks url %w", err)
 	}
 
-	keysetSource := &JwksSource{JwksURL: jwksUrl, Ttl: ttl, Deleted: false}
+	keysetSource := &JwksSource{JwksURL: jwksUrl, Ttl: ttl, Deleted: false, IsDiscovery: isDiscovery}
 	f.keysetSources[jwksUrl] = keysetSource
 	heap.Push(&f.schedule, fetchAt{at: time.Now(), keysetSource: keysetSource}) // schedule an immediate fetch
 
@@ -240,12 +249,12 @@ func (f *JwksFetcher) removeKeyset(jwksUrl string) bool {
 	return false
 }
 
-func (f *JwksFetcher) updateKeyset(jwksUrl string, ttl time.Duration) error {
+func (f *JwksFetcher) updateKeyset(jwksUrl string, ttl time.Duration, isDiscovery bool) error {
 	if keysetSource, ok := f.keysetSources[jwksUrl]; ok {
 		delete(f.keysetSources, jwksUrl)
 		keysetSource.Deleted = true
 	}
-	return f.addKeyset(jwksUrl, ttl)
+	return f.addKeyset(jwksUrl, ttl, isDiscovery)
 }
 
 func (c *jwksHttpClientImpl) FetchJwks(ctx context.Context, jwksURL string) (jose.JSONWebKeySet, error) {
@@ -274,4 +283,47 @@ func (c *jwksHttpClientImpl) FetchJwks(ctx context.Context, jwksURL string) (jos
 	}
 
 	return jwks, nil
+}
+
+func (f *JwksFetcher) fetchJwksFromDiscovery(ctx context.Context, issuer string) (jose.JSONWebKeySet, error) {
+	jwksURI, err := f.jwksClient.FetchDiscoveryMetadata(ctx, issuer)
+	if err != nil {
+		return jose.JSONWebKeySet{}, err
+	}
+	return f.jwksClient.FetchJwks(ctx, jwksURI)
+}
+
+func (c *jwksHttpClientImpl) FetchDiscoveryMetadata(ctx context.Context, issuer string) (string, error) {
+	// RFC 8414: The well-known URI path is formed by appending "/.well-known/oauth-authorization-server" to the issuer
+	discoveryURL, err := url.JoinPath(issuer, ".well-known/oauth-authorization-server")
+	if err != nil {
+		return "", fmt.Errorf("failed to construct discovery URL: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create discovery request: %w", err)
+	}
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch discovery metadata: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code from discovery endpoint %s: %d", discoveryURL, resp.StatusCode)
+	}
+
+	var metadata struct {
+		JwksURI string `json:"jwks_uri"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return "", fmt.Errorf("failed to decode discovery metadata: %w", err)
+	}
+
+	if metadata.JwksURI == "" {
+		return "", fmt.Errorf("jwks_uri not found in discovery metadata")
+	}
+	return metadata.JwksURI, nil
 }

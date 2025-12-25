@@ -35,6 +35,21 @@ func (m *MockJwksHttpClient) EXPECT() *MockJwksHttpClientMockRecorder {
 	return m.recorder
 }
 
+// FetchDiscoveryMetadata mocks base method.
+func (m *MockJwksHttpClient) FetchDiscoveryMetadata(ctx context.Context, issuer string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchDiscoveryMetadata", ctx, issuer)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchDiscoveryMetadata indicates an expected call of FetchDiscoveryMetadata.
+func (mr *MockJwksHttpClientMockRecorder) FetchDiscoveryMetadata(ctx, issuer interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDiscoveryMetadata", reflect.TypeOf((*MockJwksHttpClient)(nil).FetchDiscoveryMetadata), ctx, issuer)
+}
+
 // FetchJwks mocks base method.
 func (m *MockJwksHttpClient) FetchJwks(ctx context.Context, jwksURL string) (jose.JSONWebKeySet, error) {
 	m.ctrl.T.Helper()

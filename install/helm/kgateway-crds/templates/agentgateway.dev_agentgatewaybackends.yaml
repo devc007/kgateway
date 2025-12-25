@@ -2022,8 +2022,6 @@ spec:
                                           description: ResourceMetadata defines the
                                             metadata to use for MCP resources.
                                           type: object
-                                      required:
-                                      - jwks
                                       type: object
                                     authorization:
                                       description: |-
@@ -3406,8 +3404,6 @@ spec:
                             description: ResourceMetadata defines the metadata to
                               use for MCP resources.
                             type: object
-                        required:
-                        - jwks
                         type: object
                       authorization:
                         description: |-
