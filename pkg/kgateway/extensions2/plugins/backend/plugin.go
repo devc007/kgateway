@@ -127,7 +127,7 @@ func buildTranslateFunc(
 ) func(krtctx krt.HandlerContext, i *kgateway.Backend) *backendIr {
 	return func(krtctx krt.HandlerContext, i *kgateway.Backend) *backendIr {
 		var beIr backendIr
-		switch i.Spec.Type {
+		switch getBackendType(i.Spec) {
 		case kgateway.BackendTypeStatic:
 			staticIr, err := buildStaticIr(i.Spec.Static)
 			if err != nil {
@@ -211,7 +211,7 @@ func processBackendForEnvoy(ctx context.Context, in ir.BackendObjectIR, out *env
 	// TODO: propagated error to CRD #11558.
 	// TODO(tim): do we need to do anything here for AI backends?
 	spec := be.Spec
-	switch spec.Type {
+	switch getBackendType(spec) {
 	case kgateway.BackendTypeStatic:
 		processStatic(beIr.staticIr, out)
 	case kgateway.BackendTypeAWS:
@@ -226,7 +226,7 @@ func processBackendForEnvoy(ctx context.Context, in ir.BackendObjectIR, out *env
 }
 
 func parseAppProtocol(b *kgateway.Backend) ir.AppProtocol {
-	switch b.Spec.Type {
+	switch getBackendType(b.Spec) {
 	case kgateway.BackendTypeStatic:
 		appProtocol := b.Spec.Static.AppProtocol
 		if appProtocol != nil {
@@ -238,7 +238,7 @@ func parseAppProtocol(b *kgateway.Backend) ir.AppProtocol {
 
 // hostname returns the hostname for the backend. Only static backends are supported.
 func hostname(in *kgateway.Backend) string {
-	if in.Spec.Type != kgateway.BackendTypeStatic {
+	if getBackendType(in.Spec) != kgateway.BackendTypeStatic {
 		return ""
 	}
 	if len(in.Spec.Static.Hosts) == 0 {
@@ -250,12 +250,28 @@ func hostname(in *kgateway.Backend) string {
 func processEndpoints(be *kgateway.Backend) *ir.EndpointsForBackend {
 	spec := be.Spec
 	switch {
-	case spec.Type == kgateway.BackendTypeStatic:
+	case getBackendType(spec) == kgateway.BackendTypeStatic:
 		return processEndpointsStatic(spec.Static)
-	case spec.Type == kgateway.BackendTypeAWS:
+	case getBackendType(spec) == kgateway.BackendTypeAWS:
 		return processEndpointsAws(spec.Aws)
 	}
 	return nil
+}
+
+func getBackendType(spec kgateway.BackendSpec) kgateway.BackendType {
+	if spec.Type != nil {
+		return *spec.Type
+	}
+	if spec.Aws != nil {
+		return kgateway.BackendTypeAWS
+	}
+	if spec.Static != nil {
+		return kgateway.BackendTypeStatic
+	}
+	if spec.DynamicForwardProxy != nil {
+		return kgateway.BackendTypeDynamicForwardProxy
+	}
+	return ""
 }
 
 type backendPlugin struct {
@@ -275,7 +291,7 @@ func (p *backendPlugin) Name() string {
 
 func (p *backendPlugin) ApplyForBackend(pCtx *ir.RouteBackendContext, in ir.HttpBackend, out *envoyroutev3.Route) error {
 	backend := pCtx.Backend.Obj.(*kgateway.Backend)
-	switch backend.Spec.Type {
+	switch getBackendType(backend.Spec) {
 	case kgateway.BackendTypeDynamicForwardProxy:
 		if p.needsDfpFilter == nil {
 			p.needsDfpFilter = make(map[string]bool)
