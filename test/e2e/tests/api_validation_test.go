@@ -494,7 +494,7 @@ spec:
 `,
 			wantErrors: []string{
 				"spec.retry.perTryTimeout: Invalid value: \"1f\": invalid duration value",
-				"spec.retry.perTryTimeout: Invalid value: \"1f\": type conversion error from 'string' to 'google.protobuf.Duration' evaluating rule: retry.perTryTimeout must be at least 1ms",
+				"spec.retry.perTryTimeout: Invalid value: \"string\": type conversion error from 'string' to 'google.protobuf.Duration' evaluating rule: retry.perTryTimeout must be at least 1ms",
 			},
 		},
 		{
