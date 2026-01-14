@@ -65,9 +65,10 @@ func (j *JwksStorePolicyController) Init(ctx context.Context) {
 			}
 		}
 
-		// enqueue Backend MCP authentication JWKS (if present)
-		if p.Spec.Backend != nil && p.Spec.Backend.MCP != nil && p.Spec.Backend.MCP.Authentication != nil {
-			if s := j.buildJwksSource(kctx, p.Name, p.Namespace, &p.Spec.Backend.MCP.Authentication.JWKS); s != nil {
+		// enqueue Backend MCP authentication JWKS (if present and explicitly configured)
+		// When JWKS is nil, auto-discovery is handled at translation time
+		if p.Spec.Backend != nil && p.Spec.Backend.MCP != nil && p.Spec.Backend.MCP.Authentication != nil && p.Spec.Backend.MCP.Authentication.JWKS != nil {
+			if s := j.buildJwksSource(kctx, p.Name, p.Namespace, p.Spec.Backend.MCP.Authentication.JWKS); s != nil {
 				toret = append(toret, *s)
 			}
 		}
@@ -78,8 +79,9 @@ func (j *JwksStorePolicyController) Init(ctx context.Context) {
 				// ignore non-mcp backend types
 				continue
 			}
-			if b.Spec.Policies != nil && b.Spec.Policies.MCP != nil && b.Spec.Policies.MCP.Authentication != nil {
-				if s := j.buildJwksSource(kctx, p.Name, p.Namespace, &p.Spec.Backend.MCP.Authentication.JWKS); s != nil {
+			// Only build JWKS source when explicitly configured (not using auto-discovery)
+			if b.Spec.Policies != nil && b.Spec.Policies.MCP != nil && b.Spec.Policies.MCP.Authentication != nil && b.Spec.Policies.MCP.Authentication.JWKS != nil {
+				if s := j.buildJwksSource(kctx, b.Name, b.Namespace, b.Spec.Policies.MCP.Authentication.JWKS); s != nil {
 					toret = append(toret, *s)
 				}
 			}

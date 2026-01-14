@@ -876,6 +876,7 @@ type BackendMCP struct {
 	Authentication *MCPAuthentication `json:"authentication,omitempty"`
 }
 
+// +kubebuilder:validation:XValidation:rule="has(self.jwks) || (has(self.issuer) && size(self.issuer) > 0)",message="either jwks must be provided or issuer must be set for auto-discovery"
 type MCPAuthentication struct {
 	// ResourceMetadata defines the metadata to use for MCP resources.
 	// +optional
@@ -887,6 +888,9 @@ type MCPAuthentication struct {
 	McpIDP *McpIDP `json:"provider,omitempty"`
 
 	// Issuer identifies the IdP that issued the JWT. This corresponds to the 'iss' claim (https://tools.ietf.org/html/rfc7519#section-4.1.1).
+	// When jwks is not specified, the issuer URL is used to auto-discover the JWKS URI from the
+	// OAuth 2.0 Authorization Server Metadata endpoint (/.well-known/oauth-authorization-server)
+	// as defined in RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414).
 	// +optional
 	Issuer ShortString `json:"issuer,omitempty"`
 
@@ -898,8 +902,11 @@ type MCPAuthentication struct {
 	Audiences []string `json:"audiences,omitempty"`
 
 	// jwks defines the remote JSON Web Key used to validate the signature of the JWT.
-	// +required
-	JWKS RemoteJWKS `json:"jwks"`
+	// If not specified and issuer is set, the JWKS URI will be auto-discovered from the
+	// issuer's OAuth 2.0 Authorization Server Metadata endpoint (/.well-known/oauth-authorization-server)
+	// as defined in RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414).
+	// +optional
+	JWKS *RemoteJWKS `json:"jwks,omitempty"`
 
 	// validation mode for JWT authentication.
 	// +optional

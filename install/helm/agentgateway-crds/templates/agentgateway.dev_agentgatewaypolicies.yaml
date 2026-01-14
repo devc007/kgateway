@@ -1156,14 +1156,20 @@ spec:
                             minItems: 1
                             type: array
                           issuer:
-                            description: Issuer identifies the IdP that issued the
-                              JWT. This corresponds to the 'iss' claim (https://tools.ietf.org/html/rfc7519#section-4.1.1).
+                            description: |-
+                              Issuer identifies the IdP that issued the JWT. This corresponds to the 'iss' claim (https://tools.ietf.org/html/rfc7519#section-4.1.1).
+                              When jwks is not specified, the issuer URL is used to auto-discover the JWKS URI from the
+                              OAuth 2.0 Authorization Server Metadata endpoint (/.well-known/oauth-authorization-server)
+                              as defined in RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414).
                             maxLength: 256
                             minLength: 1
                             type: string
                           jwks:
-                            description: jwks defines the remote JSON Web Key used
-                              to validate the signature of the JWT.
+                            description: |-
+                              jwks defines the remote JSON Web Key used to validate the signature of the JWT.
+                              If not specified and issuer is set, the JWKS URI will be auto-discovered from the
+                              issuer's OAuth 2.0 Authorization Server Metadata endpoint (/.well-known/oauth-authorization-server)
+                              as defined in RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414).
                             properties:
                               backendRef:
                                 description: |-
@@ -1276,9 +1282,12 @@ spec:
                             description: ResourceMetadata defines the metadata to
                               use for MCP resources.
                             type: object
-                        required:
-                        - jwks
                         type: object
+                        x-kubernetes-validations:
+                        - message: either jwks must be provided or issuer must be
+                            set for auto-discovery
+                          rule: has(self.jwks) || (has(self.issuer) && size(self.issuer)
+                            > 0)
                       authorization:
                         description: |-
                           authorization defines MCPBackend level authorization. Unlike authorization at the HTTP level, which will reject

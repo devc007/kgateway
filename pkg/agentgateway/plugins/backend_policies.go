@@ -18,6 +18,7 @@ import (
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/agentgateway"
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/shared"
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/discovery"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/jwks_url"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/sslutils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
@@ -322,11 +323,35 @@ func translateBackendMCPAuthentication(ctx PolicyCtx, policy *agentgateway.Agent
 		mode = api.BackendPolicySpec_McpAuthentication_OPTIONAL
 	}
 
-	jwksUrl, _, err := jwks_url.JwksUrlBuilderFactory().BuildJwksUrlAndTlsConfig(ctx.Krt, policy.Name, policy.Namespace, &authnPolicy.JWKS)
-	if err != nil {
-		logger.Error("failed resolving jwks url", "error", err)
-		return nil, err
+	// Resolve JWKS URL - either from explicit configuration or via auto-discovery
+	var jwksUrl string
+	var err error
+
+	if authnPolicy.JWKS != nil {
+		// Explicit JWKS configuration provided
+		jwksUrl, _, err = jwks_url.JwksUrlBuilderFactory().BuildJwksUrlAndTlsConfig(ctx.Krt, policy.Name, policy.Namespace, authnPolicy.JWKS)
+		if err != nil {
+			logger.Error("failed resolving jwks url from explicit configuration", "error", err)
+			return nil, err
+		}
+	} else if authnPolicy.Issuer != "" {
+		// Auto-discover JWKS URI from issuer's OAuth 2.0 metadata (RFC 8414)
+		jwksUrl, err = discovery.DiscoverJwksURI(authnPolicy.Issuer)
+		if err != nil {
+			logger.Error("failed to auto-discover jwks_uri from issuer",
+				"issuer", authnPolicy.Issuer,
+				"error", err,
+				"hint", "ensure the issuer exposes /.well-known/oauth-authorization-server or /.well-known/openid-configuration")
+			return nil, fmt.Errorf("failed to auto-discover jwks_uri from issuer %s: %w", authnPolicy.Issuer, err)
+		}
+		logger.Info("auto-discovered jwks_uri from issuer OAuth metadata",
+			"issuer", authnPolicy.Issuer,
+			"jwks_uri", jwksUrl)
+	} else {
+		// This shouldn't happen due to API validation, but handle gracefully
+		return nil, fmt.Errorf("either jwks or issuer must be specified for MCP authentication")
 	}
+
 	translatedInlineJwks, err := resolveRemoteJWKSInline(ctx, jwksUrl)
 	if err != nil {
 		logger.Error("failed resolving jwks", "jwks_uri", jwksUrl, "error", err)
