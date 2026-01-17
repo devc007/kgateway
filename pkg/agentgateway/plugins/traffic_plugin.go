@@ -147,7 +147,7 @@ func TranslateAgentgatewayPolicy(
 		if target.SectionName != nil {
 			parentRef.SectionName = target.SectionName
 		}
-		// TODO: add support for XListenerSet
+
 		switch gk {
 		case wellknown.GatewayGVK.GroupKind():
 			policyTarget = &api.PolicyTarget{
@@ -164,6 +164,10 @@ func TranslateAgentgatewayPolicy(
 		case wellknown.ServiceGVK.GroupKind():
 			policyTarget = &api.PolicyTarget{
 				Kind: utils.ServiceTarget(policy.Namespace, string(target.Name), target.SectionName),
+			}
+		case wellknown.XListenerSetGVK.GroupKind():
+			policyTarget = &api.PolicyTarget{
+				Kind: utils.GatewayTarget(policy.Namespace, string(target.Name), target.SectionName),
 			}
 			// TODO: inferencepool
 
