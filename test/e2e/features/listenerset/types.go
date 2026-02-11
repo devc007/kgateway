@@ -26,13 +26,16 @@ var (
 	invalidListenerSetNonExistingGWManifest = filepath.Join(fsutils.MustGetThisDir(), "testdata", "invalid-listenerset-non-existing-gw.yaml")
 	conflictedListenerSetManifest           = filepath.Join(fsutils.MustGetThisDir(), "testdata", "conflicted-listenerset.yaml")
 	policyManifest                          = filepath.Join(fsutils.MustGetThisDir(), "testdata", "policies.yaml")
+	tlsSecretManifest                       = filepath.Join(fsutils.MustGetThisDir(), "testdata", "tls-secret.yaml")
+	httpsListenerSetManifest                = filepath.Join(fsutils.MustGetThisDir(), "testdata", "https-listenerset.yaml")
 
-	gwListener1Port  = 80
-	gwListener2Port  = 8081
-	ls1Listener1Port = 90
-	ls1Listener2Port = 8091
-	ls2Listener1Port = 8095
-	ls3Listener1Port = 88
+	gwListener1Port   = 80
+	gwListener2Port   = 8081
+	ls1Listener1Port  = 90
+	ls1Listener2Port  = 8091
+	ls2Listener1Port  = 8095
+	ls3Listener1Port  = 88
+	httpsListenerPort = 8443
 
 	proxyObjectMeta = metav1.ObjectMeta{
 		Name:      "gw",
@@ -68,6 +71,14 @@ var (
 	conflictedListenerSet = &gwxv1a1.XListenerSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "z-conflicted-listenerset",
+			Namespace: "allowed-ns",
+		},
+	}
+
+	// TestHTTPSListenerSet
+	httpsListenerSet = &gwxv1a1.XListenerSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "https-ls",
 			Namespace: "allowed-ns",
 		},
 	}
@@ -114,6 +125,9 @@ var (
 		},
 		"TestConflictedListenerSet": {
 			Manifests: []string{validListenerSetManifest, conflictedListenerSetManifest},
+		},
+		"TestHTTPSListenerSet": {
+			Manifests: []string{tlsSecretManifest, httpsListenerSetManifest},
 		},
 	}
 )

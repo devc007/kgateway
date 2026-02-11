@@ -1,0 +1,57 @@
+apiVersion: gateway.networking.x-k8s.io/v1alpha1
+kind: XListenerSet
+metadata:
+  name: https-ls
+  namespace: allowed-ns
+spec:
+  parentRef:
+    kind: Gateway
+    group: gateway.networking.k8s.io
+    name: gw
+    namespace: default
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 8443
+    tls:
+      certificateRefs:
+        - group: ""
+          kind: Secret
+          name: test-tls-xls
+          namespace: default
+    allowedRoutes:
+      namespaces:
+        from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: https-ls-route
+  namespace: default
+spec:
+  parentRefs:
+    - kind: XListenerSet
+      group: gateway.networking.x-k8s.io
+      name: https-ls
+      namespace: allowed-ns
+  hostnames:
+    - "https-listenerset.com"
+  rules:
+    - backendRefs:
+        - name: example-svc
+          port: 8080
+---
+# ReferenceGrant to allow XListenerSet in allowed-ns to reference Secret in default namespace
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-tls-secret-from-allowed-ns
+  namespace: default
+spec:
+  from:
+  - group: gateway.networking.x-k8s.io
+    kind: XListenerSet
+    namespace: allowed-ns
+  to:
+  - group: ""
+    kind: Secret

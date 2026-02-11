@@ -302,6 +302,71 @@ func (s *testingSuite) TestPolicies() {
 		expectOKWithCustomHeader("policy", "gateway"))
 }
 
+func (s *testingSuite) TestHTTPSListenerSet() {
+	// Verify Gateway has attached listener sets
+	s.TestInstallation.Assertions.EventuallyGatewayCondition(s.Ctx, proxyObjectMeta.Name, proxyObjectMeta.Namespace, listener.GatewayConditionAttachedListenerSets, metav1.ConditionTrue)
+
+	// Verify HTTPS XListenerSet is accepted and programmed
+	s.TestInstallation.Assertions.EventuallyListenerSetStatus(s.Ctx, httpsListenerSet.GetName(), httpsListenerSet.GetNamespace(),
+		gwxv1a1.ListenerSetStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   string(gwxv1a1.ListenerSetConditionAccepted),
+					Status: metav1.ConditionTrue,
+					Reason: string(gwxv1a1.ListenerSetReasonAccepted),
+				},
+				{
+					Type:   string(gwxv1a1.ListenerSetConditionProgrammed),
+					Status: metav1.ConditionTrue,
+					Reason: string(gwxv1a1.ListenerSetReasonProgrammed),
+				},
+			},
+			Listeners: []gwxv1a1.ListenerEntryStatus{
+				{
+					Name:           "https",
+					Port:           gwxv1a1.PortNumber(httpsListenerPort), //nolint:gosec // G115: test port constant is int, always in valid range
+					AttachedRoutes: 1,
+					Conditions: []metav1.Condition{
+						{
+							Type:   string(gwxv1a1.ListenerEntryConditionAccepted),
+							Status: metav1.ConditionTrue,
+							Reason: string(gwxv1a1.ListenerEntryReasonAccepted),
+						},
+						{
+							Type:   string(gwxv1a1.ListenerEntryConditionConflicted),
+							Status: metav1.ConditionFalse,
+							Reason: string(gwv1.ListenerReasonNoConflicts),
+						},
+						{
+							Type:   string(gwxv1a1.ListenerEntryConditionResolvedRefs),
+							Status: metav1.ConditionTrue,
+							Reason: string(gwxv1a1.ListenerEntryReasonResolvedRefs),
+						},
+						{
+							Type:   string(gwxv1a1.ListenerEntryConditionProgrammed),
+							Status: metav1.ConditionTrue,
+							Reason: string(gwxv1a1.ListenerEntryReasonProgrammed),
+						},
+					},
+				},
+			},
+		})
+
+	// Test HTTPS connectivity on XListenerSet
+	// This verifies that TLS termination works correctly on HTTPS listeners
+	s.TestInstallation.Assertions.AssertEventualCurlResponse(
+		s.Ctx,
+		defaults.CurlPodExecOpt,
+		[]curl.Option{
+			curl.WithHost(kubeutils.ServiceFQDN(proxyService.ObjectMeta)),
+			curl.WithPort(httpsListenerPort),
+			curl.WithScheme("https"),
+			curl.IgnoreServerCert(), // Self-signed certificate
+			curl.WithHostHeader("https-listenerset.com"),
+		},
+		expectOK)
+}
+
 func (s *testingSuite) expectValidListenerSetAccepted(obj client.Object) {
 	s.TestInstallation.AssertionsT(s.T()).EventuallyGatewayCondition(s.Ctx, proxyObjectMeta.Name, proxyObjectMeta.Namespace, listener.GatewayConditionAttachedListenerSets, metav1.ConditionTrue)
 
