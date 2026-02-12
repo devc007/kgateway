@@ -304,10 +304,10 @@ func (s *testingSuite) TestPolicies() {
 
 func (s *testingSuite) TestHTTPSListenerSet() {
 	// Verify Gateway has attached listener sets
-	s.TestInstallation.Assertions.EventuallyGatewayCondition(s.Ctx, proxyObjectMeta.Name, proxyObjectMeta.Namespace, listener.GatewayConditionAttachedListenerSets, metav1.ConditionTrue)
+	s.TestInstallation.AssertionsT(s.T()).EventuallyGatewayCondition(s.Ctx, proxyObjectMeta.Name, proxyObjectMeta.Namespace, listener.GatewayConditionAttachedListenerSets, metav1.ConditionTrue)
 
 	// Verify HTTPS XListenerSet is accepted and programmed
-	s.TestInstallation.Assertions.EventuallyListenerSetStatus(s.Ctx, httpsListenerSet.GetName(), httpsListenerSet.GetNamespace(),
+	s.TestInstallation.AssertionsT(s.T()).EventuallyListenerSetStatus(s.Ctx, httpsListenerSet.GetName(), httpsListenerSet.GetNamespace(),
 		gwxv1a1.ListenerSetStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -354,7 +354,7 @@ func (s *testingSuite) TestHTTPSListenerSet() {
 
 	// Test HTTPS connectivity on XListenerSet
 	// This verifies that TLS termination works correctly on HTTPS listeners
-	s.TestInstallation.Assertions.AssertEventualCurlResponse(
+	s.TestInstallation.AssertionsT(s.T()).AssertEventualCurlResponse(
 		s.Ctx,
 		defaults.CurlPodExecOpt,
 		[]curl.Option{
