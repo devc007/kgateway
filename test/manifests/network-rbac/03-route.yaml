@@ -1,0 +1,17 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: echo-route
+  namespace: test-network-rbac
+spec:
+  parentRefs:
+    - name: test-gateway
+      namespace: test-network-rbac
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: echo-service
+          port: 8080

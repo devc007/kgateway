@@ -112,6 +112,19 @@ type ListenerConfig struct {
 	// that should map 1-to-1 with a given HTTP listener, such as the Envoy health check HTTP filter.
 	// +optional
 	HTTPSettings *HTTPSettings `json:"httpSettings,omitempty"`
+
+	// RBAC specifies network-level role-based access control configuration.
+	// This defines authorization rules that are evaluated at the connection level,
+	// before any HTTP processing occurs. Network RBAC can inspect:
+	// - Client certificates (subject, SAN, fingerprint)
+	// - Source and destination IP addresses (with CIDR matching)
+	// - Connection metadata and TLS properties
+	//
+	// Network RBAC is applied before HTTP-level RBAC policies from TrafficPolicy.
+	// When a connection is denied by network RBAC, it is closed immediately without
+	// any HTTP processing.
+	// +optional
+	RBAC *shared.Authorization `json:"rbac,omitempty"`
 }
 
 // ProxyProtocolConfig configures the PROXY protocol listener filter.

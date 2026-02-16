@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-service
+  namespace: test-network-rbac
+  labels:
+    app: echo
+spec:
+  selector:
+    app: echo
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo
+  namespace: test-network-rbac
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo
+  template:
+    metadata:
+      labels:
+        app: echo
+    spec:
+      containers:
+        - name: echo
+          image: ealen/echo-server:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"

@@ -1817,6 +1817,52 @@ spec:
                       This is commonly used when kgateway is behind a load balancer that preserves client IP information.
                       See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/listener/proxy_protocol/v3/proxy_protocol.proto
                     type: object
+                  rbac:
+                    description: |-
+                      RBAC specifies network-level role-based access control configuration.
+                      This defines authorization rules that are evaluated at the connection level,
+                      before any HTTP processing occurs. Network RBAC can inspect:
+                      - Client certificates (subject, SAN, fingerprint)
+                      - Source and destination IP addresses (with CIDR matching)
+                      - Connection metadata and TLS properties
+
+                      Network RBAC is applied before HTTP-level RBAC policies from TrafficPolicy.
+                      When a connection is denied by network RBAC, it is closed immediately without
+                      any HTTP processing.
+                    properties:
+                      action:
+                        default: Allow
+                        description: |-
+                          Action defines whether the rule allows or denies the request if matched.
+                          If unspecified, the default is "Allow".
+                        enum:
+                        - Allow
+                        - Deny
+                        type: string
+                      policy:
+                        description: |-
+                          Policy specifies the Authorization rule to evaluate.
+                          A policy matches when **any** of the conditions evaluates to true.
+                        properties:
+                          matchExpressions:
+                            description: |-
+                              MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
+                              These expression should be in the form of a Common Expression Language (CEL) expression.
+                            items:
+                              description: CELExpression represents a Common Expression
+                                Language (CEL) expression.
+                              maxLength: 16384
+                              minLength: 1
+                              type: string
+                            maxItems: 256
+                            minItems: 1
+                            type: array
+                        required:
+                        - matchExpressions
+                        type: object
+                    required:
+                    - policy
+                    type: object
                 type: object
               perPort:
                 description: |-
@@ -3616,6 +3662,52 @@ spec:
                             When set, Envoy will expect connections to include the PROXY protocol header.
                             This is commonly used when kgateway is behind a load balancer that preserves client IP information.
                             See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/listener/proxy_protocol/v3/proxy_protocol.proto
+                          type: object
+                        rbac:
+                          description: |-
+                            RBAC specifies network-level role-based access control configuration.
+                            This defines authorization rules that are evaluated at the connection level,
+                            before any HTTP processing occurs. Network RBAC can inspect:
+                            - Client certificates (subject, SAN, fingerprint)
+                            - Source and destination IP addresses (with CIDR matching)
+                            - Connection metadata and TLS properties
+
+                            Network RBAC is applied before HTTP-level RBAC policies from TrafficPolicy.
+                            When a connection is denied by network RBAC, it is closed immediately without
+                            any HTTP processing.
+                          properties:
+                            action:
+                              default: Allow
+                              description: |-
+                                Action defines whether the rule allows or denies the request if matched.
+                                If unspecified, the default is "Allow".
+                              enum:
+                              - Allow
+                              - Deny
+                              type: string
+                            policy:
+                              description: |-
+                                Policy specifies the Authorization rule to evaluate.
+                                A policy matches when **any** of the conditions evaluates to true.
+                              properties:
+                                matchExpressions:
+                                  description: |-
+                                    MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
+                                    These expression should be in the form of a Common Expression Language (CEL) expression.
+                                  items:
+                                    description: CELExpression represents a Common
+                                      Expression Language (CEL) expression.
+                                    maxLength: 16384
+                                    minLength: 1
+                                    type: string
+                                  maxItems: 256
+                                  minItems: 1
+                                  type: array
+                              required:
+                              - matchExpressions
+                              type: object
+                          required:
+                          - policy
                           type: object
                       type: object
                     port:

@@ -1,0 +1,20 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: test-ip-allow
+  namespace: test-network-rbac
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: test-gateway
+  default:
+    rbac:
+      policy:
+        matchExpressions:
+          # Allow localhost and common pod networks
+          - "connection.source_address.matches('127.0.0.0/8')"
+          - "connection.source_address.matches('10.0.0.0/8')"
+          - "connection.source_address.matches('172.16.0.0/12')"
+          - "connection.source_address.matches('192.168.0.0/16')"
+      action: Allow

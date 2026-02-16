@@ -57,6 +57,8 @@ type listenerPolicy struct {
 	perConnectionBufferLimitBytes *uint32
 	// +noKrtEquals
 	http *HttpListenerPolicyIr
+	// Network RBAC filter configuration
+	networkRBAC *anypb.Any
 }
 
 func newListenerPolicy(
@@ -71,10 +73,25 @@ func newListenerPolicy(
 	}
 	http, errs := NewHttpListenerPolicy(krtctx, commoncol, i.HTTPSettings, objSrc)
 
+	// Translate network RBAC if configured
+	var networkRBACFilter *anypb.Any
+	if i.RBAC != nil {
+		rbacConfig, err := translateNetworkRBAC(i.RBAC)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to translate network RBAC: %w", err))
+		} else if rbacConfig != nil {
+			networkRBACFilter, err = utils.MessageToAny(rbacConfig)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to marshal network RBAC config: %w", err))
+			}
+		}
+	}
+
 	return listenerPolicy{
 		proxyProtocol:                 convertProxyProtocolConfig(objSrc, i.ProxyProtocol),
 		perConnectionBufferLimitBytes: perConnectionBufferLimitBytes,
 		http:                          http,
+		networkRBAC:                   networkRBACFilter,
 	}, errs
 }
 
@@ -115,6 +132,10 @@ func (d listenerPolicy) Equals(d2 listenerPolicy) bool {
 		return false
 	}
 	if d.http != nil && !d.http.Equals(d2.http) {
+		return false
+	}
+
+	if !proto.Equal(d.networkRBAC, d2.networkRBAC) {
 		return false
 	}
 
@@ -296,7 +317,7 @@ func (p *listenerPolicyPluginGwPass) ApplyListenerPlugin(
 	logger.Debug("applying to listener", "listener", out.Name, "policyType", fmt.Sprintf("%T", pCtx.Policy))
 	cfg := p.getPolicy(pCtx.Policy, pCtx.Port)
 
-	logger.Debug("listenerPolicy found", "proxy_protocol", cfg.proxyProtocol, "per_connection_buffer_limit_bytes", cfg.perConnectionBufferLimitBytes)
+	logger.Debug("listenerPolicy found", "proxy_protocol", cfg.proxyProtocol, "per_connection_buffer_limit_bytes", cfg.perConnectionBufferLimitBytes, "network_rbac", cfg.networkRBAC != nil)
 	// Add proxy protocol listener filter if configured
 	if cfg.proxyProtocol != nil {
 		p.applyProxyProtocol(out, cfg.proxyProtocol)
@@ -304,6 +325,10 @@ func (p *listenerPolicyPluginGwPass) ApplyListenerPlugin(
 	// Set per connection buffer limit if configured
 	if cfg.perConnectionBufferLimitBytes != nil {
 		out.PerConnectionBufferLimitBytes = &wrapperspb.UInt32Value{Value: *cfg.perConnectionBufferLimitBytes}
+	}
+	// Add network RBAC filter if configured
+	if cfg.networkRBAC != nil {
+		p.applyNetworkRBAC(out, cfg.networkRBAC)
 	}
 	if http := cfg.http; http != nil {
 		p.healthCheckPolicy[pCtx.Port] = http.healthCheckPolicy

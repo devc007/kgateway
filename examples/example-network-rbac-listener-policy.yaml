@@ -1,0 +1,78 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: example-network-rbac
+  namespace: default
+spec:
+  targetRefs:
+    - kind: Gateway
+      name: example-gateway
+  default:
+    # Network-level RBAC configuration
+    # This is evaluated at the connection level, before any HTTP processing
+    rbac:
+      policy:
+        matchExpressions:
+          # Allow connections from internal networks only
+          - "connection.source_address.matches('10.0.0.0/8')"
+          - "connection.source_address.matches('172.16.0.0/12')"
+          - "connection.source_address.matches('192.168.0.0/16')"
+      action: Allow
+---
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: example-mtls-network-rbac
+  namespace: default
+spec:
+  targetRefs:
+    - kind: Gateway
+      name: secure-gateway
+  default:
+    # Require mTLS with specific certificate attributes
+    rbac:
+      policy:
+        matchExpressions:
+          # Require client certificate to be present
+          - "has(connection.tls_session.peer_certificate)"
+          # AND certificate must have specific organization
+          - "connection.tls_session.subject.contains('O=TrustedOrg')"
+      action: Allow
+---
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: example-per-port-network-rbac
+  namespace: default
+spec:
+  targetRefs:
+    - kind: Gateway
+      name: multi-port-gateway
+  # Default policy for all ports
+  default:
+    rbac:
+      policy:
+        matchExpressions:
+          # Default: allow internal networks
+          - "connection.source_address.matches('10.0.0.0/8')"
+      action: Allow
+  # Override for specific ports
+  perPort:
+    # Port 443: Require mTLS
+    - port: 443
+      listener:
+        rbac:
+          policy:
+            matchExpressions:
+              - "has(connection.tls_session.peer_certificate)"
+              - "connection.tls_session.subject.contains('O=SecureOrg')"
+          action: Allow
+    # Port 8080: More permissive, allow broader IP range
+    - port: 8080
+      listener:
+        rbac:
+          policy:
+            matchExpressions:
+              - "connection.source_address.matches('10.0.0.0/8')"
+              - "connection.source_address.matches('192.168.0.0/16')"
+          action: Allow
