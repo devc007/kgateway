@@ -154,7 +154,7 @@ If a test fails and `SKIP_BUG_REPORT` is not set, the framework calls `PerTestPr
 
 ## The `SuiteRunner`
 
-[`suite.go`](../../test/e2e/suite.go) defines the `SuiteRunner` interface that allows E2E tests to simply Register tests in one location and execute them
+ [`suite.go`](../../test/e2e/suite.go) defines the `SuiteRunner` interface, which allows E2E tests to register suites in one place and execute them with `Run()`.
 
 `NewSuiteRunner(ordered bool)` returns either an ordered or unordered implementation:
 
@@ -211,8 +211,8 @@ type BaseTestingSuite struct {
 
 | Hook | What it does |
 |---|---|
-| `SetupSuite()` | Detects installed Gateway API version/channel, checks suite-level version requirements (`SkipSuite()`), calls `ApplyManifests(&Setup)` to apply suite-level resources |
-| `TearDownSuite()` | Calls `DeleteManifests(&Setup)` to remove suite-level resources (skipped when `PERSIST_INSTALL` or `FAIL_FAST_AND_PERSIST`) |
+| `SetupSuite()` | Detects installed Gateway API version/channel, checks suite-level version requirements (`SkipSuite()`), selects the appropriate suite-level setup (for example via `setupByVersion`), and calls `ApplyManifests(selectedSetup)` to apply suite-level resources |
+| `TearDownSuite()` | Calls `DeleteManifests(selectedSetup)` to remove the selected suite-level resources (skipped when `PERSIST_INSTALL` or `FAIL_FAST_AND_PERSIST`) |
 | `BeforeTest(suiteName, testName)` | Looks up the `TestCase` for the current test method; checks per-test version requirements; calls `ApplyManifests(testCase)` |
 | `AfterTest(suiteName, testName)` | On failure, invokes `PerTestPreFailHandler()` for a cluster state dump; calls `DeleteManifests(testCase)` to clean up per-test resources |
 
@@ -449,6 +449,7 @@ s.TestInstallation.AssertionsT(s.T()).AssertEventualCurlError(
 Before or after applying/deleting manifests, assert Kubernetes API object state:
 
 ```go
+assertions := s.TestInstallation.AssertionsT(s.T())
 // Assert an object appears
 assertions.EventuallyObjectsExist(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "my-pod", Namespace: "default"}})
 
@@ -489,7 +490,8 @@ Tests not meeting the version requirement are automatically skipped with an info
 | `PERSIST_INSTALL=true` | Skip install if already present; skip teardown |
 | `FAIL_FAST_AND_PERSIST=true` | Skip install if present; skip teardown only on failure |
 | `SKIP_INSTALL=true` | Skip install and teardown entirely |
-| `SKIP_CLEANUP=true` | Skip teardown (but still installs) |
+| `SKIP_ALL_TEARDOWN=true` | Skip all teardown / cleanup (but still installs) |
+| `SKIP_DUMP=true` | Disable failure state dumps |
 | `SKIP_BUG_REPORT=true` | Disable failure state dumps |
 | `ISTIO_VERSION` | Selects istioctl version for Istio test suites |
 | `INSTALL_NAMESPACE` | Namespace to install kgateway into |
