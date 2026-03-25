@@ -13,6 +13,7 @@ This document describes the design and conventions of the kgateway end-to-end (E
 The diagram below shows the full lifecycle of an E2E test run, from cluster setup through test execution and teardown. The inner loop iterates over individual tests within a suite; the outer loop iterates over suites.
 
 ```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 300}}}%%
 flowchart TD
     A["Phase 1 · Environment Setup
     Handled by user or CI, outside test code
@@ -82,10 +83,10 @@ The cluster name and kubeconfig context can be overridden at runtime:
 
 | Environment Variable | Default | Description |
 |---|---|---|
-| `CLUSTER_NAME` | `kind` | Name of the kind cluster |
-| `KUBE_CTX` | `kind-<CLUSTER_NAME>` | Kubernetes context to use |
+| `CLUSTER_NAME` | `kind` | Name of the kind cluster (used by `testruntime.NewContext()`) |
+| `KUBE_CTX` | `kind-<CLUSTER_NAME>` | Kubernetes context to use (overrides the default when set) |
 
-The `cluster.MustKindContext()` function in [`testutils/cluster/kind.go`](../../test/e2e/testutils/cluster/kind.go) reads these variables and builds a `cluster.Context` that holds:
+ The `testruntime.NewContext()` helper reads `CLUSTER_NAME` (defaulting it to `kind`), stores it as `runtimeContext.ClusterName`, and then `cluster.MustKindContext(runtimeContext.ClusterName)` in [`testutils/cluster/kind.go`](../../test/e2e/testutils/cluster/kind.go) uses that name and, if set, `KUBE_CTX` to build a `cluster.Context` that holds:
 
 - `Name` – cluster name
 - `KubeContext` – kubeconfig context string
@@ -115,7 +116,7 @@ type Context struct {
 }
 ```
 
-`TestInstallation.InstallKgatewayFromLocalChart()` performs the install and then calls `EventuallyGatewayInstallSucceeded()` to confirm the controller is healthy. The corresponding `UninstallKgateway()` call is registered with `t.Cleanup()` so teardown happens automatically at the end of the test function—unless `PERSIST_INSTALL`, `FAIL_FAST_AND_PERSIST`, or `SKIP_INSTALL` is set.
+ `TestInstallation.InstallKgatewayFromLocalChart()` performs the install and then calls `EventuallyGatewayInstallSucceeded()` to confirm the controller is healthy. The corresponding `UninstallKgateway()` call is registered with `t.Cleanup()` by the top-level `*_test.go` entrypoints via `testutils.Cleanup(...)` before invoking `InstallKgatewayFromLocalChart()`. Environment flags control whether that cleanup actually runs: `PERSIST_INSTALL` always skips uninstall; `FAIL_FAST_AND_PERSIST` skips uninstall only when the test fails (on success, cleanup still runs); and `SKIP_INSTALL` skips installation entirely, so no uninstall is registered.
 
 ---
 
