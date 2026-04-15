@@ -1,7 +1,6 @@
 package listenerpolicy
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -13,12 +12,11 @@ import (
 	envoy_open_telemetry "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
 	envoy_metadata_formatter "github.com/envoyproxy/go-control-plane/envoy/extensions/formatter/metadata/v3"
 	envoy_req_without_query "github.com/envoyproxy/go-control-plane/envoy/extensions/formatter/req_without_query/v3"
+	envoytypev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	otelv1 "go.opentelemetry.io/proto/otlp/common/v1"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 	"istio.io/istio/pkg/kube/krt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
@@ -33,10 +31,17 @@ import (
 var ErrUnresolvedBackendRef = errors.New("unresolved backend reference")
 
 const (
-	serviceNameKey       = "service.name"
-	serviceNamespaceKey  = "service.namespace"
-	serviceVersionKey    = "service.version"
-	serviceInstanceIdKey = "service.instance.id"
+	// resource attribute keys per OTel semantic conventions
+	// https://opentelemetry.io/docs/specs/semconv/resource/k8s/
+
+	// Note: attributes such as k8s.pod.name, k8s.pod.uid, etc. cannot be set for access
+	// logs because Envoy's OTel access log does not support OTEL_RESOURCE_ATTRIBUTES
+	serviceNameKey      = "service.name"
+	serviceNamespaceKey = "service.namespace"
+	serviceVersionKey   = "service.version"
+
+	k8sNamespaceNameKey = "k8s.namespace.name"
+	k8sContainerNameKey = "k8s.container.name"
 )
 
 // convertAccessLogConfig transforms a list of AccessLog configurations into Envoy AccessLog configurations
@@ -153,9 +158,9 @@ func createFileAccessLog(fileSink *kgateway.FileSink) (proto.Message, error) {
 			},
 		}
 	case fileSink.JsonFormat != nil:
-		jsonStruct, err := convertJsonFormat(fileSink.JsonFormat)
+		jsonStruct, err := utils.JSONToProtoStruct(fileSink.JsonFormat.Raw)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid access log jsonFormat: %w", err)
 		}
 		fileCfg.AccessLogFormat = &envoyalfile.FileAccessLog_LogFormat{
 			LogFormat: &envoycorev3.SubstitutionFormatString{
@@ -357,6 +362,31 @@ func translateFilter(filter *kgateway.FilterType) (*envoyaccesslogv3.AccessLogFi
 			},
 		}
 
+	case filter.RuntimeFilter != nil:
+		rf := &envoyaccesslogv3.RuntimeFilter{
+			RuntimeKey: filter.RuntimeFilter.RuntimeKey,
+		}
+		if filter.RuntimeFilter.PercentSampled != nil {
+			rf.PercentSampled = &envoytypev3.FractionalPercent{
+				Numerator: uint32(filter.RuntimeFilter.PercentSampled.Numerator), // nolint:gosec // G115: kubebuilder validation ensures safe for uint32
+			}
+			if filter.RuntimeFilter.PercentSampled.Denominator != nil {
+				denominator, err := toEnvoyDenominatorType(*filter.RuntimeFilter.PercentSampled.Denominator)
+				if err != nil {
+					return nil, err
+				}
+				rf.PercentSampled.Denominator = denominator
+			}
+		}
+		if filter.RuntimeFilter.UseIndependentRandomness != nil {
+			rf.UseIndependentRandomness = *filter.RuntimeFilter.UseIndependentRandomness
+		}
+		alCfg = &envoyaccesslogv3.AccessLogFilter{
+			FilterSpecifier: &envoyaccesslogv3.AccessLogFilter_RuntimeFilter{
+				RuntimeFilter: rf,
+			},
+		}
+
 	default:
 		return nil, fmt.Errorf("no valid filter type specified")
 	}
@@ -364,44 +394,30 @@ func translateFilter(filter *kgateway.FilterType) (*envoyaccesslogv3.AccessLogFi
 	return alCfg, nil
 }
 
-func convertJsonFormat(jsonFormat *runtime.RawExtension) (*structpb.Struct, error) {
-	if jsonFormat == nil {
-		return nil, nil
-	}
-
-	var formatMap map[string]any
-	if err := json.Unmarshal(jsonFormat.Raw, &formatMap); err != nil {
-		return nil, fmt.Errorf("invalid access log jsonFormat: %w", err)
-	}
-
-	structVal, err := structpb.NewStruct(formatMap)
-	if err != nil {
-		return nil, fmt.Errorf("invalid access log jsonFormat: %w", err)
-	}
-
-	return structVal, nil
-}
-
 func generateCommonAccessLogGrpcConfig(grpcService kgateway.CommonAccessLogGrpcService, grpcBackends map[string]*ir.BackendObjectIR, accessLogId int) (*envoygrpc.CommonGrpcAccessLogConfig, error) {
 	if grpcService.LogName == "" {
 		return nil, errors.New("grpc service log name cannot be empty")
 	}
 
-	backend := grpcBackends[getLogId(grpcService.LogName, accessLogId)]
-	if backend == nil {
-		return nil, errors.New("backend ref not found")
-	}
-
-	commonConfig, err := ToEnvoyGrpc(grpcService.CommonGrpcService, backend)
+	grpcServiceConfig, err := generateGrpcServiceConfig(grpcService, grpcBackends, accessLogId)
 	if err != nil {
 		return nil, err
 	}
 
 	return &envoygrpc.CommonGrpcAccessLogConfig{
 		LogName:             grpcService.LogName,
-		GrpcService:         commonConfig,
+		GrpcService:         grpcServiceConfig,
 		TransportApiVersion: envoycorev3.ApiVersion_V3,
 	}, nil
+}
+
+func generateGrpcServiceConfig(grpcService kgateway.CommonAccessLogGrpcService, grpcBackends map[string]*ir.BackendObjectIR, accessLogId int) (*envoycorev3.GrpcService, error) {
+	backend := grpcBackends[getLogId(grpcService.LogName, accessLogId)]
+	if backend == nil {
+		return nil, errors.New("backend ref not found")
+	}
+
+	return ToEnvoyGrpc(grpcService.CommonGrpcService, backend)
 }
 
 func copyGrpcSettings(cfg *envoygrpc.HttpGrpcAccessLogConfig, grpcService *kgateway.AccessLogGrpcService, grpcBackends map[string]*ir.BackendObjectIR, accessLogId int) error {
@@ -418,12 +434,13 @@ func copyGrpcSettings(cfg *envoygrpc.HttpGrpcAccessLogConfig, grpcService *kgate
 }
 
 func copyOTelSettings(cfg *envoy_open_telemetry.OpenTelemetryAccessLogConfig, otelService *kgateway.OpenTelemetryAccessLogService, grpcBackends map[string]*ir.BackendObjectIR, accessLogId int) error {
-	config, err := generateCommonAccessLogGrpcConfig(otelService.GrpcService, grpcBackends, accessLogId)
+	config, err := generateGrpcServiceConfig(otelService.GrpcService, grpcBackends, accessLogId)
 	if err != nil {
 		return err
 	}
 
-	cfg.CommonConfig = config
+	cfg.LogName = otelService.GrpcService.LogName
+	cfg.GrpcService = config
 	if otelService.Body != nil {
 		cfg.Body = &otelv1.AnyValue{
 			Value: &otelv1.AnyValue_StringValue{
@@ -545,6 +562,19 @@ func toEnvoyComparisonOpType(op kgateway.Op) (envoyaccesslogv3.ComparisonFilter_
 	}
 }
 
+func toEnvoyDenominatorType(denominator kgateway.DenominatorType) (envoytypev3.FractionalPercent_DenominatorType, error) {
+	switch denominator {
+	case kgateway.HUNDRED:
+		return envoytypev3.FractionalPercent_HUNDRED, nil
+	case kgateway.TEN_THOUSAND:
+		return envoytypev3.FractionalPercent_TEN_THOUSAND, nil
+	case kgateway.MILLION:
+		return envoytypev3.FractionalPercent_MILLION, nil
+	default:
+		return 0, fmt.Errorf("unknown DenominatorType (%s)", denominator)
+	}
+}
+
 func toEnvoyGRPCStatusType(grpcStatus kgateway.GrpcStatus) (envoyaccesslogv3.GrpcStatusFilter_Status, error) {
 	switch grpcStatus {
 	case kgateway.OK:
@@ -618,22 +648,16 @@ func addDefaultResourceAttributes(pCtx *ir.HcmContext, config *envoy_open_teleme
 	gatewayName := pCtx.Gateway.SourceObject.GetName()
 	gatewayNamespace := pCtx.Gateway.SourceObject.GetNamespace()
 
-	// Set default service.name if not already present
+	// Set default resource attributes if not already present
 	addResourceAttributeIfMissing(config, serviceNameKey, GenerateDefaultServiceName(gatewayName, gatewayNamespace))
-
-	// Set default service.namespace if not already present
 	addResourceAttributeIfMissing(config, serviceNamespaceKey, gatewayNamespace)
 
-	// Set default service.instance.id from the Gateway CR UID if not already present
-	if pCtx.Gateway.SourceObject.Obj != nil && pCtx.Gateway.SourceObject.Obj.GetUID() != "" {
-		uid := string(pCtx.Gateway.SourceObject.Obj.GetUID())
-		addResourceAttributeIfMissing(config, serviceInstanceIdKey, uid)
-	}
-
-	// Set default service.version from the kgateway controller version if not already present
 	if version.Version != "" {
 		addResourceAttributeIfMissing(config, serviceVersionKey, version.Version)
 	}
+
+	addResourceAttributeIfMissing(config, k8sNamespaceNameKey, gatewayNamespace)
+	addResourceAttributeIfMissing(config, k8sContainerNameKey, kwellknown.KgatewayContainerName)
 }
 
 // addResourceAttributeIfMissing adds a string resource attribute to the config

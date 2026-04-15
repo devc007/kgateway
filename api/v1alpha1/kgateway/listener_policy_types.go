@@ -107,6 +107,30 @@ type ListenerConfig struct {
 	// +kubebuilder:validation:Minimum=0
 	PerConnectionBufferLimitBytes *int32 `json:"perConnectionBufferLimitBytes,omitempty"`
 
+	// RBAC specifies network-level role-based access control for this listener.
+	// Network RBAC is evaluated at the TCP connection level, before any HTTP processing begins.
+	// This allows filtering based on connection attributes such as source IP address, destination port,
+	// and TLS client certificate information.
+	//
+	// Available CEL attributes for network RBAC include:
+	//   - source.address: Source IP address (e.g., "192.168.1.100")
+	//   - source.port: Source port number
+	//   - destination.address: Destination IP address
+	//   - destination.port: Destination port (e.g., 443, 8080)
+	//   - connection.tls.subject: TLS client certificate subject
+	//   - connection.tls.uri_san: TLS URI Subject Alternative Name
+	//
+	// Example: Allow only corporate network IPs
+	//   rbac:
+	//     policy:
+	//       matchExpressions:
+	//         - 'source.address.startsWith("10.0.0.")'
+	//         - 'source.address.startsWith("192.168.0.")'
+	//     action: Allow
+	//
+	// +optional
+	RBAC *shared.Authorization `json:"rbac,omitempty"`
+
 	// HTTPListenerPolicy is intended to be used for configuring the Envoy `HttpConnectionManager` and any other config or policy
 	// that should map 1-to-1 with a given HTTP listener, such as the Envoy health check HTTP filter.
 	// +optional
@@ -504,6 +528,10 @@ type FilterType struct {
 	GrpcStatusFilter *GrpcStatusFilter `json:"grpcStatusFilter,omitempty"`
 	// +optional
 	CELFilter *CELFilter `json:"celFilter,omitempty"`
+	// Filters for random sampling of access logs.
+	// Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+	// +optional
+	RuntimeFilter *RuntimeFilter `json:"runtimeFilter,omitempty"`
 }
 
 // ComparisonFilter represents a filter based on a comparison.
@@ -577,6 +605,45 @@ type CELFilter struct {
 	// see: https://www.envoyproxy.io/docs/envoy/v1.33.0/xds/type/v3/cel.proto.html#common-expression-language-cel-proto
 	// +required
 	Match string `json:"match"`
+}
+
+// RuntimeFilter filters for random sampling of access logs.
+// A request will be logged if the runtime key is set and the request's random value is less than the percent_sampled value.
+// Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+type RuntimeFilter struct {
+	// The runtime key to look up in the runtime implementation. This key determines whether
+	// the access log is enabled. When the runtime key value is set, the filter checks this key
+	// at runtime to decide whether to log each request.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	RuntimeKey string `json:"runtimeKey"`
+
+	// By default, the runtime filter will log on every request when the runtime key is set.
+	// If this field is set, it additionally applies a fractional percent check so that only a
+	// fraction of requests are logged.
+	// +optional
+	PercentSampled *FractionalPercent `json:"percentSampled,omitempty"`
+
+	// If set to true, the filter uses Envoy's independent randomness source.
+	// When false (the default), the filter uses the runtime key lookup.
+	// +optional
+	UseIndependentRandomness *bool `json:"useIndependentRandomness,omitempty"`
+}
+
+// FractionalPercent represents a fraction as a numerator and denominator.
+// Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/type/v3/percent.proto#envoy-v3-api-msg-type-v3-fractionalpercent
+type FractionalPercent struct {
+	// Specifies the numerator. Defaults to 0.
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	Numerator int32 `json:"numerator"`
+
+	// Specifies the denominator. If the denominator specified is less than the numerator,
+	// the final fractional percentage is capped at 1 (100%).
+	// Defaults to HUNDRED.
+	// +optional
+	// +kubebuilder:validation:Enum=HUNDRED;TEN_THOUSAND;MILLION
+	Denominator *DenominatorType `json:"denominator,omitempty"`
 }
 
 // GrpcStatusFilter filters gRPC requests based on their response status.
@@ -779,12 +846,20 @@ type OpenTelemetryTracingConfig struct {
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type ResourceDetector struct {
+	// EnvironmentResourceDetector sets OpenTelemetry resource attributes from the OTEL_RESOURCE_ATTRIBUTES
+	// environment variable in the Envoy container.
+	// Default enabled if not set. If multiple are set, the last will take precedence.
 	// +optional
 	EnvironmentResourceDetector *EnvironmentResourceDetectorConfig `json:"environmentResourceDetector,omitempty"`
 }
 
-// EnvironmentResourceDetectorConfig specified the EnvironmentResourceDetector
-type EnvironmentResourceDetectorConfig struct{}
+// EnvironmentResourceDetectorConfig specifies the EnvironmentResourceDetector configuration.
+type EnvironmentResourceDetectorConfig struct {
+	// Enable controls whether the EnvironmentResourceDetector is used.
+	// +optional
+	// +kubebuilder:default=true
+	Enable *bool `json:"enable,omitempty"`
+}
 
 // Sampler defines the list of supported Samplers
 // +kubebuilder:validation:MaxProperties=1

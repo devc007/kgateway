@@ -21,6 +21,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/directresponse"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/extauth"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/extproc"
+	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/faultinjection"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/frontendtls"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/header_modifiers"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/jwt"
@@ -44,6 +45,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/tracing"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/trafficpolicystatus"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/transformation"
+	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/websocket"
 )
 
 func KubeGatewaySuiteRunner() e2e.SuiteRunner {
@@ -82,6 +84,7 @@ func KubeGatewaySuiteRunner() e2e.SuiteRunner {
 	kubeGatewaySuiteRunner.Register("TrafficPolicyStatus", trafficpolicystatus.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("Cors", cors.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("Compression", compression.NewTestingSuite)
+	kubeGatewaySuiteRunner.Register("FaultInjection", faultinjection.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("BackendConfigPolicy", backendconfigpolicy.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("CSRF", csrf.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("AutoHostRewrite", auto_host_rewrite.NewTestingSuite)
@@ -95,6 +98,7 @@ func KubeGatewaySuiteRunner() e2e.SuiteRunner {
 	kubeGatewaySuiteRunner.Register("JWT", jwt.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("BasicAuth", basicauth.NewTestingSuite)
 	kubeGatewaySuiteRunner.Register("OAuth", oauth.NewTestingSuite)
+	kubeGatewaySuiteRunner.Register("WebSocket", websocket.NewTestingSuite)
 
 	return kubeGatewaySuiteRunner
 }

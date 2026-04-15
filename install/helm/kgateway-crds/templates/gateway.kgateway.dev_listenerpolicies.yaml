@@ -325,8 +325,14 @@ spec:
                                                 - RegularExpression
                                                 type: string
                                               value:
-                                                description: Value is the value of
-                                                  HTTP Header to be matched.
+                                                description: |-
+                                                  Value is the value of HTTP Header to be matched.
+                                                  <gateway:experimental:description>
+                                                  Must consist of printable US-ASCII characters, optionally separated
+                                                  by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                                  </gateway:experimental:description>
+
+                                                  <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                                 maxLength: 4096
                                                 minLength: 1
                                                 type: string
@@ -354,6 +360,51 @@ spec:
                                             type: array
                                         required:
                                         - flags
+                                        type: object
+                                      runtimeFilter:
+                                        description: |-
+                                          Filters for random sampling of access logs.
+                                          Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                        properties:
+                                          percentSampled:
+                                            description: |-
+                                              By default, the runtime filter will log on every request when the runtime key is set.
+                                              If this field is set, it additionally applies a fractional percent check so that only a
+                                              fraction of requests are logged.
+                                            properties:
+                                              denominator:
+                                                description: |-
+                                                  Specifies the denominator. If the denominator specified is less than the numerator,
+                                                  the final fractional percentage is capped at 1 (100%).
+                                                  Defaults to HUNDRED.
+                                                enum:
+                                                - HUNDRED
+                                                - TEN_THOUSAND
+                                                - MILLION
+                                                type: string
+                                              numerator:
+                                                description: Specifies the numerator.
+                                                  Defaults to 0.
+                                                format: int32
+                                                minimum: 0
+                                                type: integer
+                                            required:
+                                            - numerator
+                                            type: object
+                                          runtimeKey:
+                                            description: |-
+                                              The runtime key to look up in the runtime implementation. This key determines whether
+                                              the access log is enabled. When the runtime key value is set, the filter checks this key
+                                              at runtime to decide whether to log each request.
+                                            minLength: 1
+                                            type: string
+                                          useIndependentRandomness:
+                                            description: |-
+                                              If set to true, the filter uses Envoy's independent randomness source.
+                                              When false (the default), the filter uses the runtime key lookup.
+                                            type: boolean
+                                        required:
+                                        - runtimeKey
                                         type: object
                                       statusCodeFilter:
                                         description: |-
@@ -501,8 +552,14 @@ spec:
                                           - RegularExpression
                                           type: string
                                         value:
-                                          description: Value is the value of HTTP
-                                            Header to be matched.
+                                          description: |-
+                                            Value is the value of HTTP Header to be matched.
+                                            <gateway:experimental:description>
+                                            Must consist of printable US-ASCII characters, optionally separated
+                                            by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                            </gateway:experimental:description>
+
+                                            <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                           maxLength: 4096
                                           minLength: 1
                                           type: string
@@ -645,8 +702,14 @@ spec:
                                                 - RegularExpression
                                                 type: string
                                               value:
-                                                description: Value is the value of
-                                                  HTTP Header to be matched.
+                                                description: |-
+                                                  Value is the value of HTTP Header to be matched.
+                                                  <gateway:experimental:description>
+                                                  Must consist of printable US-ASCII characters, optionally separated
+                                                  by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                                  </gateway:experimental:description>
+
+                                                  <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                                 maxLength: 4096
                                                 minLength: 1
                                                 type: string
@@ -674,6 +737,51 @@ spec:
                                             type: array
                                         required:
                                         - flags
+                                        type: object
+                                      runtimeFilter:
+                                        description: |-
+                                          Filters for random sampling of access logs.
+                                          Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                        properties:
+                                          percentSampled:
+                                            description: |-
+                                              By default, the runtime filter will log on every request when the runtime key is set.
+                                              If this field is set, it additionally applies a fractional percent check so that only a
+                                              fraction of requests are logged.
+                                            properties:
+                                              denominator:
+                                                description: |-
+                                                  Specifies the denominator. If the denominator specified is less than the numerator,
+                                                  the final fractional percentage is capped at 1 (100%).
+                                                  Defaults to HUNDRED.
+                                                enum:
+                                                - HUNDRED
+                                                - TEN_THOUSAND
+                                                - MILLION
+                                                type: string
+                                              numerator:
+                                                description: Specifies the numerator.
+                                                  Defaults to 0.
+                                                format: int32
+                                                minimum: 0
+                                                type: integer
+                                            required:
+                                            - numerator
+                                            type: object
+                                          runtimeKey:
+                                            description: |-
+                                              The runtime key to look up in the runtime implementation. This key determines whether
+                                              the access log is enabled. When the runtime key value is set, the filter checks this key
+                                              at runtime to decide whether to log each request.
+                                            minLength: 1
+                                            type: string
+                                          useIndependentRandomness:
+                                            description: |-
+                                              If set to true, the filter uses Envoy's independent randomness source.
+                                              When false (the default), the filter uses the runtime key lookup.
+                                            type: boolean
+                                        required:
+                                        - runtimeKey
                                         type: object
                                       statusCodeFilter:
                                         description: |-
@@ -718,6 +826,51 @@ spec:
                                       type: array
                                   required:
                                   - flags
+                                  type: object
+                                runtimeFilter:
+                                  description: |-
+                                    Filters for random sampling of access logs.
+                                    Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                  properties:
+                                    percentSampled:
+                                      description: |-
+                                        By default, the runtime filter will log on every request when the runtime key is set.
+                                        If this field is set, it additionally applies a fractional percent check so that only a
+                                        fraction of requests are logged.
+                                      properties:
+                                        denominator:
+                                          description: |-
+                                            Specifies the denominator. If the denominator specified is less than the numerator,
+                                            the final fractional percentage is capped at 1 (100%).
+                                            Defaults to HUNDRED.
+                                          enum:
+                                          - HUNDRED
+                                          - TEN_THOUSAND
+                                          - MILLION
+                                          type: string
+                                        numerator:
+                                          description: Specifies the numerator. Defaults
+                                            to 0.
+                                          format: int32
+                                          minimum: 0
+                                          type: integer
+                                      required:
+                                      - numerator
+                                      type: object
+                                    runtimeKey:
+                                      description: |-
+                                        The runtime key to look up in the runtime implementation. This key determines whether
+                                        the access log is enabled. When the runtime key value is set, the filter checks this key
+                                        at runtime to decide whether to log each request.
+                                      minLength: 1
+                                      type: string
+                                    useIndependentRandomness:
+                                      description: |-
+                                        If set to true, the filter uses Envoy's independent randomness source.
+                                        When false (the default), the filter uses the runtime key lookup.
+                                      type: boolean
+                                  required:
+                                  - runtimeKey
                                   type: object
                                 statusCodeFilter:
                                   description: |-
@@ -1291,8 +1444,14 @@ spec:
                                   pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
                                   type: string
                                 value:
-                                  description: Value is the value of HTTP Header to
-                                    be matched.
+                                  description: |-
+                                    Value is the value of HTTP Header to be matched.
+                                    <gateway:experimental:description>
+                                    Must consist of printable US-ASCII characters, optionally separated
+                                    by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                    </gateway:experimental:description>
+
+                                    <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                   maxLength: 4096
                                   minLength: 1
                                   type: string
@@ -1365,8 +1524,14 @@ spec:
                                   pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
                                   type: string
                                 value:
-                                  description: Value is the value of HTTP Header to
-                                    be matched.
+                                  description: |-
+                                    Value is the value of HTTP Header to be matched.
+                                    <gateway:experimental:description>
+                                    Must consist of printable US-ASCII characters, optionally separated
+                                    by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                    </gateway:experimental:description>
+
+                                    <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                   maxLength: 4096
                                   minLength: 1
                                   type: string
@@ -1793,8 +1958,17 @@ spec:
                                       minProperties: 1
                                       properties:
                                         environmentResourceDetector:
-                                          description: EnvironmentResourceDetectorConfig
-                                            specified the EnvironmentResourceDetector
+                                          description: |-
+                                            EnvironmentResourceDetector sets OpenTelemetry resource attributes from the OTEL_RESOURCE_ATTRIBUTES
+                                            environment variable in the Envoy container.
+                                            Default enabled if not set. If multiple are set, the last will take precedence.
+                                          properties:
+                                            enable:
+                                              default: true
+                                              description: Enable controls whether
+                                                the EnvironmentResourceDetector is
+                                                used.
+                                              type: boolean
                                           type: object
                                       type: object
                                     type: array
@@ -1929,6 +2103,62 @@ spec:
                       When set, Envoy will expect connections to include the PROXY protocol header.
                       This is commonly used when kgateway is behind a load balancer that preserves client IP information.
                       See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/listener/proxy_protocol/v3/proxy_protocol.proto
+                    type: object
+                  rbac:
+                    description: |-
+                      RBAC specifies network-level role-based access control for this listener.
+                      Network RBAC is evaluated at the TCP connection level, before any HTTP processing begins.
+                      This allows filtering based on connection attributes such as source IP address, destination port,
+                      and TLS client certificate information.
+
+                      Available CEL attributes for network RBAC include:
+                        - source.address: Source IP address (e.g., "192.168.1.100")
+                        - source.port: Source port number
+                        - destination.address: Destination IP address
+                        - destination.port: Destination port (e.g., 443, 8080)
+                        - connection.tls.subject: TLS client certificate subject
+                        - connection.tls.uri_san: TLS URI Subject Alternative Name
+
+                      Example: Allow only corporate network IPs
+                        rbac:
+                          policy:
+                            matchExpressions:
+                              - 'source.address.startsWith("10.0.0.")'
+                              - 'source.address.startsWith("192.168.0.")'
+                          action: Allow
+                    properties:
+                      action:
+                        default: Allow
+                        description: |-
+                          Action defines whether the rule allows or denies the request if matched.
+                          If unspecified, the default is "Allow".
+                        enum:
+                        - Allow
+                        - Deny
+                        type: string
+                      policy:
+                        description: |-
+                          Policy specifies the Authorization rule to evaluate.
+                          A policy matches when **any** of the conditions evaluates to true.
+                        properties:
+                          matchExpressions:
+                            description: |-
+                              MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
+                              These expression should be in the form of a Common Expression Language (CEL) expression.
+                            items:
+                              description: CELExpression represents a Common Expression
+                                Language (CEL) expression.
+                              maxLength: 16384
+                              minLength: 1
+                              type: string
+                            maxItems: 256
+                            minItems: 1
+                            type: array
+                        required:
+                        - matchExpressions
+                        type: object
+                    required:
+                    - policy
                     type: object
                 type: object
               perPort:
@@ -2123,8 +2353,14 @@ spec:
                                                       - RegularExpression
                                                       type: string
                                                     value:
-                                                      description: Value is the value
-                                                        of HTTP Header to be matched.
+                                                      description: |-
+                                                        Value is the value of HTTP Header to be matched.
+                                                        <gateway:experimental:description>
+                                                        Must consist of printable US-ASCII characters, optionally separated
+                                                        by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                                        </gateway:experimental:description>
+
+                                                        <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                                       maxLength: 4096
                                                       minLength: 1
                                                       type: string
@@ -2152,6 +2388,51 @@ spec:
                                                   type: array
                                               required:
                                               - flags
+                                              type: object
+                                            runtimeFilter:
+                                              description: |-
+                                                Filters for random sampling of access logs.
+                                                Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                              properties:
+                                                percentSampled:
+                                                  description: |-
+                                                    By default, the runtime filter will log on every request when the runtime key is set.
+                                                    If this field is set, it additionally applies a fractional percent check so that only a
+                                                    fraction of requests are logged.
+                                                  properties:
+                                                    denominator:
+                                                      description: |-
+                                                        Specifies the denominator. If the denominator specified is less than the numerator,
+                                                        the final fractional percentage is capped at 1 (100%).
+                                                        Defaults to HUNDRED.
+                                                      enum:
+                                                      - HUNDRED
+                                                      - TEN_THOUSAND
+                                                      - MILLION
+                                                      type: string
+                                                    numerator:
+                                                      description: Specifies the numerator.
+                                                        Defaults to 0.
+                                                      format: int32
+                                                      minimum: 0
+                                                      type: integer
+                                                  required:
+                                                  - numerator
+                                                  type: object
+                                                runtimeKey:
+                                                  description: |-
+                                                    The runtime key to look up in the runtime implementation. This key determines whether
+                                                    the access log is enabled. When the runtime key value is set, the filter checks this key
+                                                    at runtime to decide whether to log each request.
+                                                  minLength: 1
+                                                  type: string
+                                                useIndependentRandomness:
+                                                  description: |-
+                                                    If set to true, the filter uses Envoy's independent randomness source.
+                                                    When false (the default), the filter uses the runtime key lookup.
+                                                  type: boolean
+                                              required:
+                                              - runtimeKey
                                               type: object
                                             statusCodeFilter:
                                               description: |-
@@ -2300,8 +2581,14 @@ spec:
                                                 - RegularExpression
                                                 type: string
                                               value:
-                                                description: Value is the value of
-                                                  HTTP Header to be matched.
+                                                description: |-
+                                                  Value is the value of HTTP Header to be matched.
+                                                  <gateway:experimental:description>
+                                                  Must consist of printable US-ASCII characters, optionally separated
+                                                  by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                                  </gateway:experimental:description>
+
+                                                  <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                                 maxLength: 4096
                                                 minLength: 1
                                                 type: string
@@ -2445,8 +2732,14 @@ spec:
                                                       - RegularExpression
                                                       type: string
                                                     value:
-                                                      description: Value is the value
-                                                        of HTTP Header to be matched.
+                                                      description: |-
+                                                        Value is the value of HTTP Header to be matched.
+                                                        <gateway:experimental:description>
+                                                        Must consist of printable US-ASCII characters, optionally separated
+                                                        by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                                        </gateway:experimental:description>
+
+                                                        <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                                       maxLength: 4096
                                                       minLength: 1
                                                       type: string
@@ -2474,6 +2767,51 @@ spec:
                                                   type: array
                                               required:
                                               - flags
+                                              type: object
+                                            runtimeFilter:
+                                              description: |-
+                                                Filters for random sampling of access logs.
+                                                Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                              properties:
+                                                percentSampled:
+                                                  description: |-
+                                                    By default, the runtime filter will log on every request when the runtime key is set.
+                                                    If this field is set, it additionally applies a fractional percent check so that only a
+                                                    fraction of requests are logged.
+                                                  properties:
+                                                    denominator:
+                                                      description: |-
+                                                        Specifies the denominator. If the denominator specified is less than the numerator,
+                                                        the final fractional percentage is capped at 1 (100%).
+                                                        Defaults to HUNDRED.
+                                                      enum:
+                                                      - HUNDRED
+                                                      - TEN_THOUSAND
+                                                      - MILLION
+                                                      type: string
+                                                    numerator:
+                                                      description: Specifies the numerator.
+                                                        Defaults to 0.
+                                                      format: int32
+                                                      minimum: 0
+                                                      type: integer
+                                                  required:
+                                                  - numerator
+                                                  type: object
+                                                runtimeKey:
+                                                  description: |-
+                                                    The runtime key to look up in the runtime implementation. This key determines whether
+                                                    the access log is enabled. When the runtime key value is set, the filter checks this key
+                                                    at runtime to decide whether to log each request.
+                                                  minLength: 1
+                                                  type: string
+                                                useIndependentRandomness:
+                                                  description: |-
+                                                    If set to true, the filter uses Envoy's independent randomness source.
+                                                    When false (the default), the filter uses the runtime key lookup.
+                                                  type: boolean
+                                              required:
+                                              - runtimeKey
                                               type: object
                                             statusCodeFilter:
                                               description: |-
@@ -2518,6 +2856,51 @@ spec:
                                             type: array
                                         required:
                                         - flags
+                                        type: object
+                                      runtimeFilter:
+                                        description: |-
+                                          Filters for random sampling of access logs.
+                                          Based on: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto#config-accesslog-v3-runtimefilter
+                                        properties:
+                                          percentSampled:
+                                            description: |-
+                                              By default, the runtime filter will log on every request when the runtime key is set.
+                                              If this field is set, it additionally applies a fractional percent check so that only a
+                                              fraction of requests are logged.
+                                            properties:
+                                              denominator:
+                                                description: |-
+                                                  Specifies the denominator. If the denominator specified is less than the numerator,
+                                                  the final fractional percentage is capped at 1 (100%).
+                                                  Defaults to HUNDRED.
+                                                enum:
+                                                - HUNDRED
+                                                - TEN_THOUSAND
+                                                - MILLION
+                                                type: string
+                                              numerator:
+                                                description: Specifies the numerator.
+                                                  Defaults to 0.
+                                                format: int32
+                                                minimum: 0
+                                                type: integer
+                                            required:
+                                            - numerator
+                                            type: object
+                                          runtimeKey:
+                                            description: |-
+                                              The runtime key to look up in the runtime implementation. This key determines whether
+                                              the access log is enabled. When the runtime key value is set, the filter checks this key
+                                              at runtime to decide whether to log each request.
+                                            minLength: 1
+                                            type: string
+                                          useIndependentRandomness:
+                                            description: |-
+                                              If set to true, the filter uses Envoy's independent randomness source.
+                                              When false (the default), the filter uses the runtime key lookup.
+                                            type: boolean
+                                        required:
+                                        - runtimeKey
                                         type: object
                                       statusCodeFilter:
                                         description: |-
@@ -3104,8 +3487,14 @@ spec:
                                         pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
                                         type: string
                                       value:
-                                        description: Value is the value of HTTP Header
-                                          to be matched.
+                                        description: |-
+                                          Value is the value of HTTP Header to be matched.
+                                          <gateway:experimental:description>
+                                          Must consist of printable US-ASCII characters, optionally separated
+                                          by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                          </gateway:experimental:description>
+
+                                          <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                         maxLength: 4096
                                         minLength: 1
                                         type: string
@@ -3178,8 +3567,14 @@ spec:
                                         pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
                                         type: string
                                       value:
-                                        description: Value is the value of HTTP Header
-                                          to be matched.
+                                        description: |-
+                                          Value is the value of HTTP Header to be matched.
+                                          <gateway:experimental:description>
+                                          Must consist of printable US-ASCII characters, optionally separated
+                                          by single tabs or spaces. See: https://tools.ietf.org/html/rfc7230#section-3.2
+                                          </gateway:experimental:description>
+
+                                          <gateway:experimental:validation:Pattern=`^[!-~]+([\t ]?[!-~]+)*$`>
                                         maxLength: 4096
                                         minLength: 1
                                         type: string
@@ -3622,8 +4017,17 @@ spec:
                                             minProperties: 1
                                             properties:
                                               environmentResourceDetector:
-                                                description: EnvironmentResourceDetectorConfig
-                                                  specified the EnvironmentResourceDetector
+                                                description: |-
+                                                  EnvironmentResourceDetector sets OpenTelemetry resource attributes from the OTEL_RESOURCE_ATTRIBUTES
+                                                  environment variable in the Envoy container.
+                                                  Default enabled if not set. If multiple are set, the last will take precedence.
+                                                properties:
+                                                  enable:
+                                                    default: true
+                                                    description: Enable controls whether
+                                                      the EnvironmentResourceDetector
+                                                      is used.
+                                                    type: boolean
                                                 type: object
                                             type: object
                                           type: array
@@ -3758,6 +4162,62 @@ spec:
                             When set, Envoy will expect connections to include the PROXY protocol header.
                             This is commonly used when kgateway is behind a load balancer that preserves client IP information.
                             See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/listener/proxy_protocol/v3/proxy_protocol.proto
+                          type: object
+                        rbac:
+                          description: |-
+                            RBAC specifies network-level role-based access control for this listener.
+                            Network RBAC is evaluated at the TCP connection level, before any HTTP processing begins.
+                            This allows filtering based on connection attributes such as source IP address, destination port,
+                            and TLS client certificate information.
+
+                            Available CEL attributes for network RBAC include:
+                              - source.address: Source IP address (e.g., "192.168.1.100")
+                              - source.port: Source port number
+                              - destination.address: Destination IP address
+                              - destination.port: Destination port (e.g., 443, 8080)
+                              - connection.tls.subject: TLS client certificate subject
+                              - connection.tls.uri_san: TLS URI Subject Alternative Name
+
+                            Example: Allow only corporate network IPs
+                              rbac:
+                                policy:
+                                  matchExpressions:
+                                    - 'source.address.startsWith("10.0.0.")'
+                                    - 'source.address.startsWith("192.168.0.")'
+                                action: Allow
+                          properties:
+                            action:
+                              default: Allow
+                              description: |-
+                                Action defines whether the rule allows or denies the request if matched.
+                                If unspecified, the default is "Allow".
+                              enum:
+                              - Allow
+                              - Deny
+                              type: string
+                            policy:
+                              description: |-
+                                Policy specifies the Authorization rule to evaluate.
+                                A policy matches when **any** of the conditions evaluates to true.
+                              properties:
+                                matchExpressions:
+                                  description: |-
+                                    MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
+                                    These expression should be in the form of a Common Expression Language (CEL) expression.
+                                  items:
+                                    description: CELExpression represents a Common
+                                      Expression Language (CEL) expression.
+                                    maxLength: 16384
+                                    minLength: 1
+                                    type: string
+                                  maxItems: 256
+                                  minItems: 1
+                                  type: array
+                              required:
+                              - matchExpressions
+                              type: object
+                          required:
+                          - policy
                           type: object
                       type: object
                     port:
