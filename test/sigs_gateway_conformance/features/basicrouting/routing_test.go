@@ -53,14 +53,13 @@ func TestGatewayWithRoute(t *testing.T) {
 			)
 
 			for _, port := range []int{listenerHighPort, listenerLowPort} {
-				port := port
 				t.Run("listener_port_"+strconv.Itoa(port), func(t *testing.T) {
 					http.MakeRequestAndExpectEventuallyConsistentResponse(
 						t, s.RoundTripper, s.TimeoutConfig,
 						addressOnPort(gwAddr, port),
 						http.ExpectedResponse{
 							Request:   http.Request{Host: routeHostname, Path: "/"},
-							Response:  http.Response{StatusCode: 200},
+							Response:  http.Response{StatusCode: http.StatusOK},
 							Backend:   echoBackendName,
 							Namespace: testNamespace,
 						},

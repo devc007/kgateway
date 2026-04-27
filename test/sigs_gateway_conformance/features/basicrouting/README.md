@@ -4,10 +4,6 @@ This directory contains a POC for using the upstream
 [Gateway API conformance framework](https://github.com/kubernetes-sigs/gateway-api/tree/main/conformance)
 (`sigs.k8s.io/gateway-api/conformance`) to write end-to-end tests against kgateway.
 
-It is a sibling to the [sigs/e2e-framework POC](../../../e2e_sigs/features/basicrouting/),
-written deliberately as a standalone example so the two frameworks can be
-compared without code shared between them.
-
 ## What this POC validates
 
 `TestGatewayWithRoute` exercises a single HTTPRoute attached to a Gateway with
