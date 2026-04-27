@@ -4,6 +4,7 @@ package basicrouting
 
 import (
 	"net"
+	nethttp "net/http"
 	"strconv"
 	"testing"
 
@@ -59,7 +60,7 @@ func TestGatewayWithRoute(t *testing.T) {
 						addressOnPort(gwAddr, port),
 						http.ExpectedResponse{
 							Request:   http.Request{Host: routeHostname, Path: "/"},
-							Response:  http.Response{StatusCode: http.StatusOK},
+							Response:  http.Response{StatusCode: nethttp.StatusOK},
 							Backend:   echoBackendName,
 							Namespace: testNamespace,
 						},
