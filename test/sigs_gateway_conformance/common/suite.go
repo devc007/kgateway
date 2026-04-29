@@ -25,10 +25,10 @@ var (
 )
 
 type BaseManifestsConfig struct {
-	Namespace    string
-	GatewayName  string
-	ServiceName  string
-	PodName      string
+	Namespace     string
+	GatewayName   string
+	ServiceName   string
+	PodName       string
 	ManifestPaths []string
 }
 

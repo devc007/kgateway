@@ -38,4 +38,3 @@ func TestMain(m *testing.M) {
 	suite = common.GetSuite()
 	os.Exit(m.Run())
 }
-
