@@ -13,6 +13,8 @@ import (
 	"sigs.k8s.io/gateway-api/conformance/utils/kubernetes"
 	confsuite "sigs.k8s.io/gateway-api/conformance/utils/suite"
 	"sigs.k8s.io/gateway-api/pkg/features"
+
+	"github.com/kgateway-dev/kgateway/v2/test/sigs_gateway_conformance/common"
 )
 
 const (
@@ -27,7 +29,7 @@ const (
 // conformance framework. The framework auto-applies test manifests and
 // registers teardown via t.Cleanup; the test only asserts behaviour.
 func TestGatewayWithRoute(t *testing.T) {
-	applyBaseManifests(t)
+	common.ApplyBaseManifests(t, []string{"testdata/gateway.yaml", "testdata/backend.yaml"})
 
 	suite.ControllerName = kubernetes.GWCMustHaveAcceptedConditionTrue(
 		t, suite.Client, suite.TimeoutConfig, suite.GatewayClassName,
