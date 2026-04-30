@@ -5,7 +5,6 @@ package common
 import (
 	"fmt"
 	"io/fs"
-	"sync"
 	"testing"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -21,16 +20,7 @@ import (
 
 var (
 	suite *confsuite.ConformanceTestSuite
-	once  sync.Once
 )
-
-type BaseManifestsConfig struct {
-	Namespace     string
-	GatewayName   string
-	ServiceName   string
-	PodName       string
-	ManifestPaths []string
-}
 
 // SetupConformanceSuite initializes the Gateway API conformance test suite.
 // It must be called once before running conformance tests.
@@ -99,22 +89,14 @@ func GetSuite() *confsuite.ConformanceTestSuite {
 }
 
 // ApplyBaseManifests applies base manifests (gateway, backend) with auto-cleanup.
-// It uses sync.Once to ensure manifests are applied only once, even if called
-// from multiple tests. The manifests are applied at suite level with t.Cleanup
-// registration for automatic resource deletion.
+// The manifests are applied at suite level with t.Cleanup registration for automatic
+// resource deletion. Each call applies its manifests independently.
 func ApplyBaseManifests(t *testing.T, manifests []string) {
 	t.Helper()
-	var err error
-	once.Do(func() {
-		if suite == nil {
-			err = fmt.Errorf("conformance suite not initialized; call SetupConformanceSuite first")
-			return
-		}
-		for _, manifest := range manifests {
-			suite.Applier.MustApplyWithCleanup(t, suite.Client, suite.TimeoutConfig, manifest, true)
-		}
-	})
-	if err != nil {
-		t.Fatalf("failed to apply base manifests: %v", err)
+	if suite == nil {
+		t.Fatalf("conformance suite not initialized; call SetupConformanceSuite first")
+	}
+	for _, manifest := range manifests {
+		suite.Applier.MustApplyWithCleanup(t, suite.Client, suite.TimeoutConfig, manifest, true)
 	}
 }

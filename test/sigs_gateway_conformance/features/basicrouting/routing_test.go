@@ -42,7 +42,7 @@ func TestGatewayWithRoute(t *testing.T) {
 			features.SupportGateway,
 			features.SupportHTTPRoute,
 		},
-		Manifests: []string{"testdata/gateway-with-route.yaml"},
+		Manifests: []string{"testdata/http-route.yaml"},
 		Test: func(t *testing.T, s *confsuite.ConformanceTestSuite) {
 			gwNN := types.NamespacedName{Name: gatewayName, Namespace: testNamespace}
 			routeNN := types.NamespacedName{Name: routeName, Namespace: testNamespace}
