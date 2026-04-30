@@ -18,9 +18,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/schemes"
 )
 
-var (
-	suite *confsuite.ConformanceTestSuite
-)
+var suite *confsuite.ConformanceTestSuite
 
 // SetupConformanceSuite initializes the Gateway API conformance test suite.
 // It must be called once before running conformance tests.
