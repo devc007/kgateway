@@ -25,21 +25,18 @@
     - [Current framework](#current-framework--teste2efeaturesbasicroutingsuitegoteste2efeaturesbasicroutingsuitego)
     - [sigs/e2e-framework POC *(rejected)*](#sigse2e-framework-poc--teste2e_sigsfeaturesbasicroutingrouting_testgoteste2e_sigsfeaturesbasicroutingrouting_testgo-rejected--see-alternative-2alternative-2--adopt-sigsk8sioe2e-framework)
   - [Recommendation](#recommendation)
-    - [Decision tree for new tests](#decision-tree-for-new-tests)
   - [Migration Plan](#migration-plan)
-    - [Phase 1 — Land the canonical pattern (PRs 1–3)](#phase-1--land-the-canonical-pattern-prs-13)
-    - [Phase 2 — Archive the explored alternative (PR 4)](#phase-2--archive-the-explored-alternative-pr-4)
-    - [Phase 3 — Migrate a representative slice (PRs 5–7)](#phase-3--migrate-a-representative-slice-prs-57)
-    - [Phase 4 — kgateway-specific helper package (PRs 8–9)](#phase-4--kgateway-specific-helper-package-prs-89)
+    - [Phase 1 — Land the canonical pattern (PRs 1–2)](#phase-1--land-the-canonical-pattern-prs-12)
+    - [Phase 2 — Archive the explored alternative (PR 3)](#phase-2--archive-the-explored-alternative-pr-3)
+    - [Phase 3 — Migrate a representative slice (PRs 4–6)](#phase-3--migrate-a-representative-slice-prs-46)
+    - [Phase 4 — kgateway-specific helper package (PRs 7–8)](#phase-4--kgateway-specific-helper-package-prs-78)
     - [Phase 5 — Broaden migration (opportunistic)](#phase-5--broaden-migration-opportunistic)
     - [Phase 6 — Decommission (when `test/e2e/features/` is empty)](#phase-6--decommission-when-teste2efeatures-is-empty)
   - [Test Plan](#test-plan)
 - [Alternatives](#alternatives)
   - [Alternative 1 — Keep the custom framework, optimize it](#alternative-1--keep-the-custom-framework-optimize-it)
   - [Alternative 2 — Adopt `sigs.k8s.io/e2e-framework`](#alternative-2--adopt-sigsk8sioe2e-framework)
-  - [Alternative 3 — Adopt Ginkgo / a different framework entirely](#alternative-3--adopt-ginkgo--a-different-framework-entirely)
-  - [Alternative 4 — Maintain two frameworks indefinitely](#alternative-4--maintain-two-frameworks-indefinitely)
-- [Open Questions](#open-questions)
+  - [Alternative 3 — Maintain two frameworks indefinitely](#alternative-3--maintain-two-frameworks-indefinitely)
 - [Approval](#approval)
 
 <!-- /toc -->
@@ -65,7 +62,6 @@ This design document compares three candidates, recommends a path forward, and p
 * **Reliability & reproducibility.** Same result locally and in CI. Deterministic setup and teardown. No cross-test state leakage.
 * **Maintenance burden.** Lean on upstream/community-maintained test code rather than carrying kgateway-specific equivalents in-repo.
 
-These goals frame both the comparison below and the recommendation. Each goal is referenced explicitly in the recommendation table.
 
 ## Non-Goals
 
@@ -274,7 +270,7 @@ func TestGatewayWithRoute(t *testing.T) {
 }
 ```
 
-The fluent `features.New` API is clean, but `gateway.GetAddress` and `assertions.AssertSuccessfulResponse` are in-repo helpers — equivalents of `kubernetes.GatewayAndHTTPRoutesMustBeAccepted` and `http.MakeRequestAndExpectEventuallyConsistentResponse` that we would own indefinitely. The POC also assumes resources are pre-applied; bringing manifest application back means re-implementing the conformance `Applier` too.
+The fluent `features.New` API is clean, but `gateway.GetAddress` and `assertions.AssertSuccessfulResponse` are in-repo helpers — equivalents of `kubernetes.GatewayAndHTTPRoutesMustBeAccepted` and `http.MakeRequestAndExpectEventuallyConsistentResponse` that we would own indefinitely. 
 
 ### Recommendation
 
@@ -298,42 +294,24 @@ The reasoning, in order of weight:
 
 We explicitly do not recommend a "burn down the custom framework" migration. The existing framework's investments — failure dumps, image pre-pull, version gating, persistence flags — are real assets. They are migrated into reusable helpers under `test/sigs_gateway_conformance/common/` as needed, and the custom framework is retired only when nothing depends on it.
 
-#### Decision tree for new tests
-
-```mermaid
-flowchart TD
-    A[Writing a new kgateway e2e test] --> B{Is it an upstream<br/>Gateway API spec test?}
-    B -->|Yes| C[Contribute to<br/>sigs.k8s.io/gateway-api/conformance/tests]
-    B -->|No| D[Add as ConformanceTest under<br/>test/sigs_gateway_conformance/features/&lt;area&gt;/]
-    D --> E{Does the assertion need<br/>kgateway CRD status?}
-    E -->|No| F[Use upstream helpers:<br/>kubernetes.* and http.*]
-    E -->|Yes| G[Use common/kgateway_helpers/<br/>e.g. TrafficPolicyMustBeAccepted]
-```
 
 ### Migration Plan
 
-The migration is structured as a sequence of reviewable PRs. Phase 1 is already drafted across three exploration branches — they form the foundation. Phases 2 onward are the planned forward path. Each phase delivers one property of the target shape and is independently mergeable.
+The migration is structured as a sequence of reviewable PRs. Phase 1 PR 4 (`conformance-second-test-13950`) is currently under review and lands the canonical pattern with two features (`basicrouting`, `header_modifiers`). Phase 1 PR 5 (CI integration) and onward are the planned forward path. Each phase delivers one property of the target shape and is independently mergeable.
 
-```mermaid
-flowchart LR
-    P1[Phase 1<br/>Land canonical pattern<br/>PRs 1–3] --> P2[Phase 2<br/>Archive sigs/e2e POC<br/>PR 4]
-    P2 --> P3[Phase 3<br/>Migrate spec-shaped<br/>features<br/>PRs 5–7]
-    P3 --> P4[Phase 4<br/>kgateway helpers +<br/>policy tests<br/>PRs 8–9]
-    P4 --> P5[Phase 5<br/>Broaden migration<br/>opportunistic]
-    P5 --> P6[Phase 6<br/>Decommission<br/>custom framework]
-```
 
-#### Phase 1 — Land the canonical pattern (PRs 1–3)
+#### Phase 1 — Land the canonical pattern
 
-**PR 1 — `basicrouting-gw-api-conformance`** *(drafted)*
+**PR 1 — `conformance-second-test-13950`** *(under review)*
 
-Introduces `test/sigs_gateway_conformance/` with a single feature (basicrouting) to establish the framework wiring. Three load-bearing files:
+Introduces `test/sigs_gateway_conformance/` with the canonical structure already in place and two features (`basicrouting`, `header_modifiers`) wired through it. The earlier exploration on `basicrouting-gw-api-conformance` (single-feature, global `var suite`, per-feature `TestMain`) is superseded by this PR — that branch served as the throwaway POC that proved the wiring before the canonical shape was settled.
 
-* [`common/suite.go`](../test/sigs_gateway_conformance/common/suite.go) — builds a `ConformanceTestSuite` from kubeconfig, registers the kgateway scheme, and wires the upstream `Applier`.
-* [`features/basicrouting/main_test.go`](../test/sigs_gateway_conformance/features/basicrouting/main_test.go) — `TestMain` that calls `SetupConformanceSuite` and stores the result for the package's tests.
-* [`features/basicrouting/routing_test.go`](../test/sigs_gateway_conformance/features/basicrouting/routing_test.go) — one `confsuite.ConformanceTest` calling `test.Run(t, suite)`.
+The canonical structure has three load-bearing properties:
 
-The single kgateway-specific deviation from upstream is bypassing `suite.Setup()` (which hard-codes a TLS bootstrap and a particular namespace layout we don't share). It is a five-line wiring difference:
+1. **`NewConformanceSuite` returns a value**, not a global. Each test file gets the suite it needs as a parameter.
+2. **Each feature is a Go package** under `features/<area>/` exporting two symbols: `var Tests []confsuite.ConformanceTest` and `var ManifestFS embed.FS`.
+3. **A single top-level `TestConformance` orchestrator** drives every feature under `t.Parallel()`. Base manifests (gateway, echo backend) are applied once for the whole run.
+
 
 ```go
 // test/sigs_gateway_conformance/common/suite.go
@@ -342,16 +320,6 @@ func setupApplier(suite *confsuite.ConformanceTestSuite, manifestFS []fs.FS, gat
     suite.Applier.GatewayClass = gatewayClassName
 }
 ```
-
-This PR deliberately uses a global `var suite` and per-feature `TestMain`. That is the upstream-conformance-example shape; PR 2 refactors away from it.
-
-**PR 2 — `conformance-second-test-13950`** *(drafted)*
-
-Refactors the single-feature scaffolding from PR 1 into a multi-feature shape that scales:
-
-1. **`NewConformanceSuite` returns a value**, not a global. Each test file gets the suite it needs as a parameter.
-2. **Each feature is a Go package** under `features/<area>/` exporting two symbols: `var Tests []confsuite.ConformanceTest` and `var ManifestFS embed.FS`.
-3. **A single top-level `TestConformance` orchestrator** drives every feature under `t.Parallel()`. Base manifests (gateway, echo backend) are applied once for the whole run.
 
 The orchestrator is the load-bearing piece and small enough to embed here verbatim:
 
@@ -409,36 +377,36 @@ var GatewayWithRoute = confsuite.ConformanceTest{
 }
 ```
 
-Adds `header_modifiers` as the second feature — proves the pattern composes and that two features can run concurrently against the same shared base.
+Two features (`basicrouting`, `header_modifiers`) ship in this PR — proving the pattern composes and that features run concurrently against the same shared base.
 
 This is **the canonical structure** every subsequent migration targets. Use it as the reference shape.
 
 ```mermaid
 flowchart TD
     O[TestConformance orchestrator] --> S[NewConformanceSuite returns value]
-    S --> B[ApplyBaseManifests gateway + backend<br/>once, cleanup via t.Cleanup]
+    S --> B[ApplyBaseManifests gateway + backend\nonce, cleanup via t.Cleanup]
     B --> P[GWCMustHaveAcceptedConditionTrue]
     P --> R[Run features in parallel]
-    R --> F1[features/basicrouting<br/>Tests + ManifestFS]
-    R --> F2[features/header_modifiers<br/>Tests + ManifestFS]
-    R --> FN[features/&lt;new&gt;<br/>Tests + ManifestFS]
+    R --> F1[features/basicrouting\nTests + ManifestFS]
+    R --> F2[features/header_modifiers\nTests + ManifestFS]
+    R --> FN[features/new\nTests + ManifestFS]
 ```
 
-**PR 3 — CI integration**
+**PR 2 — CI integration**
 
 * Add `make conformance-kgateway` running `go test -tags e2e ./test/sigs_gateway_conformance/...`.
 * Wire into [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml) so the suite runs on every PR alongside the existing `test/e2e/` job.
 * Existing `make conformance` (upstream catalog) is unchanged. The two share the framework but exercise different test catalogs.
 
-#### Phase 2 — Archive the explored alternative (PR 4)
+#### Phase 2 — Archive the explored alternative 
 
-The `test/e2e_sigs/` POC under branch `basicrouting-e2e-sigs` is an explored alternative recorded in PR [#13890](https://github.com/kgateway-dev/kgateway/pull/13890). After Phase 1 lands:
+The `test/e2e_sigs/` POC under branch `basicrouting-e2e-sigs` is an explored alternative recorded in PR [#13890](https://github.com/kgateway-dev/kgateway/pull/13890). 
 
 * Remove `test/e2e_sigs/` from the tree. The PR remains in git history for posterity.
 * Add a "Frameworks evaluated and rejected" subsection to [`devel/testing/e2e-framework.md`](../devel/testing/e2e-framework.md) citing PR #13890 and the reasoning under [Alternatives](#alternatives).
 * Update [`devel/testing/writing-tests.md`](../devel/testing/writing-tests.md) with a "writing a new e2e test" walkthrough that defaults to the conformance shape.
 
-#### Phase 3 — Migrate a representative slice (PRs 5–7)
+#### Phase 3 — Migrate a representative slice 
 
 For each feature, the migration recipe is mechanical:
 
@@ -495,7 +463,7 @@ var CORSPreflight = confsuite.ConformanceTest{
 
 Coverage parity is verified by inspection: every `Assert*` call in the original suite must map to one assertion in the new test. PRs that drop coverage are not mergeable.
 
-#### Phase 4 — kgateway-specific helper package (PRs 8–9)
+#### Phase 4 — kgateway-specific helper package 
 
 For tests that exercise kgateway CRDs (TrafficPolicy, BackendConfigPolicy, ExtAuth, ExtProc), the upstream conformance helpers handle Gateway/HTTPRoute readiness but do not know about kgateway policy status. We add a thin in-repo helper package — the only piece of "we own this" code in the migration:
 
@@ -503,7 +471,7 @@ For tests that exercise kgateway CRDs (TrafficPolicy, BackendConfigPolicy, ExtAu
 test/sigs_gateway_conformance/
 ├── common/
 │   ├── suite.go                  (exists)
-│   └── kgateway_helpers/         (new in PR 8)
+│   └── kgateway_helpers/         
 │       ├── traffic_policy.go     // TrafficPolicyMustBeAccepted
 │       ├── backend_config.go     // BackendConfigPolicyMustBeAccepted
 │       └── ext_auth.go
@@ -526,8 +494,8 @@ func TrafficPolicyMustBeAccepted(t *testing.T, c client.Client, tc confconfig.Ti
 }
 ```
 
-* **PR 8** — adds the helper package and migrates `traffic_policy` as the first kgateway-specific feature using it.
-* **PR 9** — migrates `ext_auth` (or another policy CRD) to validate the helper shape generalizes.
+* **PR 7** — adds the helper package and migrates `traffic_policy` as the first kgateway-specific feature using it.
+* **PR 8** — migrates `ext_auth` (or another policy CRD) to validate the helper shape generalizes.
 
 #### Phase 5 — Broaden migration (opportunistic)
 
@@ -545,14 +513,14 @@ The investments in the legacy framework that have lasting value (failure dumps, 
 
 ### Test Plan
 
-The migration itself is validated by running the new (`test/sigs_gateway_conformance/`) and legacy (`test/e2e/`) suites side-by-side in CI for at least one release cycle (Phase 3). A migrated test is considered acceptable when:
+The migration itself is validated by running the new (`test/sigs_gateway_conformance/`) and legacy (`test/e2e/`) suites side-by-side in CI for at least one release cycle. A migrated test is considered acceptable when:
 
 * It passes on every supported kind cluster configuration that the original test ran on.
 * No new flake signal appears in the new suite over the parallel-run window.
 * Per-test wall time in the new suite is at parity with or better than the original. Wall-time regressions block deletion of the original.
 * Coverage parity is verified by inspection — every assertion in the original maps to an assertion in the new test.
 
-The upstream Gateway API conformance pipeline (`make conformance`, `make all-conformance`) continues to run unchanged and serves as the spec-conformance gate. The new in-repo catalog runs via `make conformance-kgateway` (added in PR 3) and is gated on every PR. Phase 1's pattern (`NewConformanceSuite`, `Tests` slice, `ManifestFS` per feature, `TestConformance` orchestrator) is exercised first by `basicrouting` and `header_modifiers` in branch 3 — those two features act as the integration test for the framework wiring before any further migration begins.
+The upstream Gateway API conformance pipeline (`make conformance`, `make all-conformance`) continues to run unchanged and serves as the spec-conformance gate. The new in-repo catalog runs via `make conformance-kgateway` and is gated on every PR. 
 
 ## Alternatives
 
@@ -562,32 +530,21 @@ We could focus all effort on making the existing framework faster (the [#12993](
 
 ### Alternative 2 — Adopt `sigs.k8s.io/e2e-framework`
 
-We prototyped this in PR [#13890](https://github.com/kgateway-dev/kgateway/pull/13890), with code under `test/e2e_sigs/`. The framework gives a clean Go-test-native programming model (`func TestX` + `features.Feature` builder) and composable lifecycle steps (`env.Environment` with `Setup`/`Finish` hooks). It is used by Crossplane, kueue, and several other CNCF projects.
+We prototyped this in PR [#1](https://github.com/devc007/kgateway/pull/1), with code under `test/e2e_sigs/`. The framework gives a clean Go-test-native programming model and composable lifecycle steps (`env.Environment` with `Setup`/`Finish` hooks). It is used by Crossplane, kueue, and several other CNCF projects.
 
 We rejected it because:
 
-* **It provides only the lifecycle scaffolding.** No assertion library, no Gateway API readiness helpers, no manifest applier, no eventual-consistency HTTP probe. The POC's [`assertions/assertions.go`](../test/e2e_sigs/assertions/assertions.go) and [`common/gateway/gateway.go`](../test/e2e_sigs/common/gateway/gateway.go) are the start of an in-repo equivalent of what `sigs.k8s.io/gateway-api/conformance/utils/` already provides. Adopting this framework means owning that reimplementation indefinitely — the exact failure mode the **Maintenance burden** goal is meant to prevent.
-* **The conformance framework already covers the same execution model.** A `confsuite.ConformanceTest` carries a name, manifests, and a test function — the same surface as `features.Feature`, but with the helper library attached. The branch-3 POC ([`test/sigs_gateway_conformance/`](../test/sigs_gateway_conformance/)) demonstrates this directly: `t.Parallel()` works at the orchestrator level, per-feature manifest filesystems are embedded, and the suite is a value not a global.
+* **It provides only the lifecycle scaffolding.** No assertion library, no Gateway API readiness helpers, no manifest applier, no eventual-consistency HTTP probe. The POC's `assertions/assertions.go` and `common/gateway/gateway.go` are the start of an in-repo equivalent of what `sigs.k8s.io/gateway-api/conformance/utils/` already provides. Adopting this framework means owning that reimplementation indefinitely — the exact failure mode the **Maintenance burden** goal is meant to prevent.
+* **The conformance framework already covers the same execution model.** A `confsuite.ConformanceTest` carries a name, manifests, and a test function — the same surface as `features.Feature`, but with the helper library attached. The  POC-2 ([`test/sigs_gateway_conformance/`]) demonstrates this directly: `t.Parallel()` works at the orchestrator level, per-feature manifest filesystems are embedded, and the suite is a value not a global.
 * **Two frameworks is a tax.** Running the conformance framework for spec tests *and* `sigs.k8s.io/e2e-framework` for feature tests means contributors switch mental models depending on which directory they are in. A single shape across both surfaces is cheaper to learn and review.
 
-The POC is preserved in PR #13890 as a reference for the comparison, then the directory is removed in Phase 2.
+The POC is preserved in [feature branch](https://github.com/devc007/kgateway/pull/1) a reference for the comparison, then the directory is removed in Phase 2.
 
-### Alternative 3 — Adopt Ginkgo / a different framework entirely
 
-Ginkgo has its own community and is used by upstream Kubernetes e2e. The project's CLAUDE.md guidance explicitly says new code should *avoid* Ginkgo, citing reduced clarity. We respect that constraint.
-
-### Alternative 4 — Maintain two frameworks indefinitely
+### Alternative 3 — Maintain two frameworks indefinitely
 
 We could leave existing tests in the custom framework forever and write new tests in the conformance framework. We rejected this as the long-term outcome but accept it as the medium-term one (Phases 3–5 above). Two frameworks indefinitely is a maintenance tax we should pay only during migration.
 
-## Open Questions
-
-* **Multi-install scenarios.** Current entrypoints like `automtls_istio_test.go` and `multiple_installs_test.go` compose multiple `TestInstallation`s in one process. The conformance framework expects a single live install per `ConformanceTestSuite`. Options are (a) one suite per install and run them as separate Go test binaries, or (b) keep these specific tests on the legacy framework as a permitted exception. We need a worked example before committing — tracked alongside Phase 4.
-* **Failure dump parity.** The current `PerTestPreFailHandler` dumps namespace state, controller logs, and resource descriptions to a per-test directory on failure. The conformance framework has no equivalent. We add a sibling helper in `common/` that wraps `tc.Run` to invoke a dump function when the subtest fails (`t.Failed()` after `tc.Run` returns). Tracked as part of Phase 1 PR 3.
-* **Persistence/iterative debug flags.** `PERSIST_INSTALL`, `FAIL_FAST_AND_PERSIST`, `SKIP_INSTALL` exist on the legacy framework. Conformance does not expose equivalents. Decision: install lifecycle is orthogonal to framework choice (per Non-Goals), so these flags continue to be honored by the install harness (`make run`) regardless of framework. The framework itself does not need to know about them.
-* **Migration cadence.** Phase 3 assumes migration "by feature area." Confirm with maintainers whether file-by-file would be preferred for any specific suite.
-* **agentgateway dataplane.** Conformance and feature tests exist for both Envoy and agentgateway dataplanes. Both should run against the conformance framework once Phase 1 lands. No framework-level concern is anticipated since the framework is dataplane-agnostic, but validate on a real agentgateway suite before declaring victory.
-* **Per-feature namespace isolation.** The branch-3 POC currently puts every feature's resources in the shared `kgateway-conformance-test` namespace. Goal #1 ("per-test namespace isolation to allow parallel execution") suggests we should rewrite each feature's manifests to use a per-feature namespace, applied via `Applier`'s namespace-rewrite hook. Decision needed before PR 5.
 
 ## Approval
 
@@ -595,6 +552,6 @@ This document is the design artifact for issue [#13891](https://github.com/kgate
 
 * the recommendation to adopt the Gateway API conformance framework (`sigs.k8s.io/gateway-api/conformance`) as the single framework for kgateway end-to-end tests, including kgateway-specific feature tests,
 * the canonical structure demonstrated in branch `conformance-second-test-13950` (value-returning `NewConformanceSuite`, per-feature `Tests` slice and `ManifestFS`, single `TestConformance` orchestrator running features under `t.Parallel()`),
-* the six-phase staged migration plan, with the explored `sigs.k8s.io/e2e-framework` POC archived in Phase 2,
 
-is the gating outcome of this design phase. Implementation continues with Phase 1 PR 3 (CI integration) once the design is approved.
+
+is the gating outcome of this design phase. Implementation continues with Phase 1  CI integration once the design is approved.
