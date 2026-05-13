@@ -67,7 +67,8 @@ This design document compares three candidates, recommends a path forward, and p
 
 * Migrate every existing e2e test as part of this proposal. Migration scope is defined later in the epic.
 * Replace the Gateway API conformance test runner. The upstream conformance suite is consumed as-is.
-* Change how kgateway is installed for tests (Helm-from-local-chart). Orthogonal to framework choice.
+* Update kgateway install for for new framework. Orthogonal to framework choice.
+  * POCs assume gateway is already installed, will be addressed in full design if framework is adopted
 * Replace unit tests, gateway translator tests, or load tests. This document is scoped to functional e2e.
 
 ## Implementation Details
