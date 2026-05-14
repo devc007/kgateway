@@ -1,10 +1,10 @@
 # EP-13891: E2E Testing Framework Selection — Adopt Gateway API Conformance Framework
 
 * Issue: [13891](https://github.com/kgateway-dev/kgateway/issues/13891)
-* Parent epic: [Modernize and improve kgateway end-to-end testing](https://github.com/kgateway-dev/kgateway/issues/13783)
+* Parent epic: [Modernize and improve kgateway end-to-end testing](https://github.com/kgateway-dev/kgateway/issues/13351)
 * Reference PRs:
   * [#13782 — fast e2e tests](https://github.com/kgateway-dev/kgateway/pull/13782)
-  * [#13890 — basicrouting POC using sigs/e2e-framework](https://github.com/kgateway-dev/kgateway/pull/13890)
+  * [devc007/kgateway#1 — basicrouting POC using sigs/e2e-framework](https://github.com/devc007/kgateway/pull/1)
   * [#12981 — Good tests](https://github.com/kgateway-dev/kgateway/issues/12981)
   * [#12993 — initial fast e2e attempt](https://github.com/kgateway-dev/kgateway/pull/12993)
 
@@ -16,9 +16,9 @@
 - [Non-Goals](#non-goals)
 - [Implementation Details](#implementation-details)
   - [Frameworks Under Consideration](#frameworks-under-consideration)
-    - [Framework A — Current kgateway custom framework](#framework-a--current-kgateway-custom-framework)
-    - [Framework B — `sigs.k8s.io/e2e-framework`](#framework-b--sigsk8sioe2e-framework)
-    - [Framework C — Gateway API conformance framework](#framework-c--gateway-api-conformance-framework)
+    - [Refactor current kgateway custom framework](#refactor-current-kgateway-custom-framework)
+    - [`sigs.k8s.io/e2e-framework`](#sigsk8sioe2e-framework)
+    - [Gateway API conformance framework](#gateway-api-conformance-framework)
   - [Comparison](#comparison)
   - [Same test in each framework](#same-test-in-each-framework)
     - [Gateway API conformance framework *(recommended)*](#gateway-api-conformance-framework--testsigs_gateway_conformancefeaturesbasicroutingbasic_routinggotestsigs_gateway_conformancefeaturesbasicroutingbasic_routinggo-recommended)
@@ -45,38 +45,37 @@
 
 kgateway maintains a large suite of end-to-end (e2e) tests that exercise the full path from Kubernetes Gateway API resources through the kgateway control plane to the dataplane proxies (Envoy and agentgateway). These tests live under [`test/e2e/`](../test/e2e/) and use a custom framework built on top of [`testify/suite`](https://pkg.go.dev/github.com/stretchr/testify/suite).
 
-The framework has accumulated significant capability over time, but it is also showing strain.
+The framework has accumulated significant capability over time, but it has also become slow to run and idiosyncratic enough that new contributors pay a real onboarding tax before writing their first test.
 
 ## Motivation
 
 The current custom framework is **slow** (per-test setup — manifest application, image pre-pull, dynamic resource discovery, `EventuallyPodsRunning` — dominates execution time), **idiosyncratic** (its abstractions are unique to kgateway and require contributors to internalize a kgateway-specific stack before writing a useful test).
 
-The parent epic [#13783](https://github.com/kgateway-dev/kgateway/issues/13783) asks us to evaluate whether kgateway should keep evolving the existing framework or migrate (in whole or in part) to one of the established alternatives in the Kubernetes ecosystem. The complementary write-up in [#12981 ("Good tests")](https://github.com/kgateway-dev/kgateway/issues/12981) and the prototype in [#12993 ("fast e2e tests")](https://github.com/kgateway-dev/kgateway/pull/12993) make a concrete case for what a faster, simpler test loop should look like.
+The parent epic [#13351](https://github.com/kgateway-dev/kgateway/issues/13351) asks us to evaluate whether kgateway should keep evolving the existing framework or migrate (in whole or in part) to one of the established alternatives in the Kubernetes ecosystem. The complementary write-up in [#12981 ("Good tests")](https://github.com/kgateway-dev/kgateway/issues/12981) and the prototype in [#12993 ("fast e2e tests")](https://github.com/kgateway-dev/kgateway/pull/12993) make a concrete case for what a faster, simpler test loop should look like.
 
 This design document compares three candidates, recommends a path forward, and proposes a migration strategy.
 
 ## Goals
 
 * **Speed & efficiency.** Shared cluster and kgateway install across the suite, native Kubernetes clients, per-test namespace isolation to enable parallel execution.
-* **Accessibility.** Easy to read and write. No kgateway-specific ceremony to learn before writing the first test.
+* **Accessibility.** Easy to read and write. Minimize the kgateway-specific ceremony a contributor has to learn before writing their first test — some will inevitably exist (policy CRD status helpers, install glue), but it should be a thin layer over conventions the wider community already knows, not a bespoke stack.
 * **Reliability & reproducibility.** Same result locally and in CI. Deterministic setup and teardown. No cross-test state leakage.
 * **Maintenance burden.** Lean on upstream/community-maintained test code rather than carrying kgateway-specific equivalents in-repo.
 
 
 ## Non-Goals
 
-* Migrate every existing e2e test as part of this proposal. Migration scope is defined later in the epic.
-* Replace the Gateway API conformance test runner. The upstream conformance suite is consumed as-is.
-* Update kgateway install for for new framework. Orthogonal to framework choice.
-  * POCs assume gateway is already installed, will be addressed in full design if framework is adopted
+* This proposal does not cover migrating every existing e2e test or replacing the Gateway API conformance test runner. Migration scope will be defined in the epic, and the upstream conformance suite is consumed as-is.
+* Change how kgateway is installed for tests (Helm-from-local-chart). Orthogonal to framework choice.
 * Replace unit tests, gateway translator tests, or load tests. This document is scoped to functional e2e.
+* Design the full integration of the chosen framework into the kgateway codebase. The scope here is validating functional fit at the POC level; production wiring (CI matrices, helper packages, large-scale migration) is delivered incrementally through the Migration Plan.
 
 ## Implementation Details
 
 
 ### Frameworks Under Consideration
 
-#### Framework A — Current kgateway custom framework
+#### Refactor current kgateway custom framework
 
 Location: [`test/e2e/`](../test/e2e/), with the suite-level base in [`test/e2e/tests/base/base_suite.go`](../test/e2e/tests/base/base_suite.go).
 
@@ -100,13 +99,12 @@ Weaknesses (these are the cracks the epic calls out):
 
 * **Slow per-test cycle.** Each suite re-applies its setup manifests and waits for pods. With pre-pull, `EventuallyObjectsExist`, dynamic resource discovery, and `EventuallyPodsRunning`, a single test can spend tens of seconds on setup before it ever issues a curl.
 * **Heavy abstraction.** A new contributor has to learn `TestInstallation`, `BaseTestingSuite`, `TestCase`, `Setup`/`SetupByVersion`, `Actions.*`, `AssertionsT(t).*`, the `SuiteRunner`, and the difference between `Setup` and per-test `TestCases` before they can write a basic routing test. The actual test method is often the smallest part of the file.
-* **Testify suite sharp edges.** `testify/suite` runs methods named `TestX` by reflection; misnamed methods silently don't run. Subtests share the suite's `*testing.T` unless the suite carefully threads the per-test `T` (kgateway works around this with `AssertionsT(t)` after [past confusion with the deprecated `Assertions`](../test/e2e/test.go)).
 * **Coupled installation and execution.** A `TestInstallation` is per-entrypoint, so testing kgateway under multiple Helm value sets requires a new `*_test.go` file *and* a new GitHub Actions invocation. This is the "1:1:1 relationship" called out in [`test/e2e/README.md`](../test/e2e/README.md).
 * **Bespoke knowledge.** None of this transfers to other Kubernetes projects. Reviewers from outside the project pay a learning tax.
 
-#### Framework B — `sigs.k8s.io/e2e-framework`
+#### `sigs.k8s.io/e2e-framework`
 
-Upstream project: <https://github.com/kubernetes-sigs/e2e-framework>. A POC migration of the basicrouting tests lives at [`test/e2e_sigs/`](../test/e2e_sigs/) ([#13890](https://github.com/kgateway-dev/kgateway/pull/13890)).
+Upstream project: <https://github.com/kubernetes-sigs/e2e-framework>. A POC migration of the basicrouting tests lives at [`test/e2e_sigs/`](../test/e2e_sigs/) ([devc007/kgateway#1](https://github.com/devc007/kgateway/pull/1)).
 
 The framework provides a Go-test-native programming model:
 
@@ -125,41 +123,49 @@ Strengths:
 
 Weaknesses:
 
-* **No batteries for kgateway-specific concerns.** Helm-install-from-local-chart, failure dumps, image pre-pull, dynamic proxy resource discovery, and Gateway API version gating do not exist out of the box. We would have to port these or pay the cost in flake and triage.
+* **No support for kgateway-specific concerns.** Helm-install-from-local-chart, failure dumps, image pre-pull, dynamic proxy resource discovery, and Gateway API version gating do not exist out of the box. We would have to port these or pay the cost in flake and triage.
 * **Manifest application is bring-your-own.** The framework gives you a controller-runtime client and `decoder.DecodeEachFile` helpers, but the polished "apply this YAML, then wait for the dynamically created proxy Deployment, then await pods running" flow we have in `BaseTestingSuite.ApplyManifests` is not provided.
-* **No `testify/suite`-style fixtures.** If a group of tests genuinely shares expensive setup, you end up either using package-level `TestMain` setup (cluster-wide) or threading state through `context.Context` manually. Mid-grain "suite" fixtures are awkward.
+* **No `testify/suite`-style fixtures.** The framework offers two scopes: cluster-wide setup in `TestMain`, or per-feature setup inside `features.Feature`. There is no built-in scope in between — i.e., a fixture shared by a *group* of related tests (the equivalent of `testify/suite`'s `SetupSuite`). If several tests share expensive setup, you have to either hoist it to `TestMain` (paid by every test in the package) or thread state through `context.Context` by hand.
 * **Per-feature setup overhead.** The fluent `Setup -> Assess -> Teardown` per feature can mean re-doing work that was previously amortized at the `SetupSuite` level, unless we are deliberate about which steps live at `TestMain` vs. per-feature.
 * **Assertion style.** The framework intentionally takes no opinion on assertions. Tests in the wider community use a mix of `t.Fatal`, `require`, and `gomega`. The basicrouting POC pulls in Gomega via [`assertions/assertions.go`](../test/e2e_sigs/assertions/assertions.go) — that pattern works but is something we own, not something the framework gives us.
 
-#### Framework C — Gateway API conformance framework
+#### Gateway API conformance framework
 
 Upstream lives at `sigs.k8s.io/gateway-api/conformance/`.
 
-* `ConformanceTestSuite` ([`gateway-api/conformance/utils/suite/suite.go`](../gateway-api/conformance/utils/suite/suite.go)) is the runner. It is constructed once per `TestMain` with the `GatewayClassName`, `ControllerName`, base manifests, and supported features, then `suite.Run(t, tests)` iterates the registered `ConformanceTest` values.
+* `ConformanceTestSuite` is the runner. It is constructed once per `TestMain` with the `GatewayClassName`, `ControllerName`, base manifests, and supported features, then `suite.Run(t, tests)` iterates the registered `ConformanceTest` values.
 * Each test is a `ConformanceTest` struct: `ShortName`, `Description`, required `Features`, `Manifests`, and a single `Test` function. Tests register themselves through `init()` blocks into a global `ConformanceTests` slice.
 * A rich helper library lives under `gateway-api/conformance/utils/`: `kubernetes.GatewayAndHTTPRoutesMustBeAccepted`, `http.MakeRequestAndExpectEventuallyConsistentResponse`, the `RoundTripper` abstraction, `tlog`, etc.
 * The framework knows how to gate tests by supported features and to skip provisional tests; it produces a structured conformance report.
 
 Strengths:
 
-* **Authoritative for Gateway API behavior.** When the question is "does kgateway conform to the spec for HTTPRoute path matching?", this is exactly the right tool. We already run it via `make conformance` / `make all-conformance`.
-* **Domain-specific helpers.** `MakeRequestAndExpectEventuallyConsistentResponse`, `GatewayMustHaveAddress`, accepted-status checks — all built specifically around the Gateway API surface.
-* **Feature gating by spec feature.** `Features: []features.FeatureName{...}` directly maps to the Gateway API feature catalog. Skipping is principled, not ad hoc.
+## Conformance Framework Strengths (for kgateway's use case)
+
+* **Reusable Gateway API testing patterns.** Helpers like 
+  `MakeRequestAndExpectEventuallyConsistentResponse` and 
+  `GatewayMustHaveAddress` handle common Gateway API validation 
+  patterns and reduce boilerplate.
+
+* **Can be extended for kgateway tests.** The framework's `ConformanceTest` 
+  struct is simple—a plain Go struct with a `Run(t, suite)` method. 
+  We can define kgateway-specific tests using the same machinery.
+
 
 Weaknesses (and how the POC addresses them):
 
-* **~~Tests are tied to upstream definitions.~~** *Disproved by the branch-3 POC.* `ConformanceTest` is a plain Go struct with a `Run(t, suite)` method. Defining new ones in our own packages and dispatching them through a local `TestConformance` orchestrator is not a contortion — it is the same machinery upstream uses. The branch-3 POC ([`test/sigs_gateway_conformance/features/header_modifiers/header_modifiers.go`](../test/sigs_gateway_conformance/features/header_modifiers/header_modifiers.go)) declares a kgateway-specific test using only upstream symbols.
-* **Limited to spec-shaped assertions out of the box.** The framework's helpers are tuned for "given this Gateway/HTTPRoute, does the response conform?" Tests that check kgateway CRD status (TrafficPolicy, BackendConfigPolicy, ExtAuth) need an in-repo helper package layered on top — addressed by `common/kgateway_helpers/` in Phase 4 of the migration plan.
-* **No install management.** The conformance runner expects a Gateway API implementation to already be running. This is a real concern but **orthogonal to framework choice** (per the Non-Goals): install lifecycle is owned by `make run` / Tilt, not the test framework. The branch-3 POC's `setupApplier` deliberately bypasses `suite.Setup()` to avoid the upstream framework's TLS bootstrap, which would otherwise interfere with our install flow.
-* **Multi-install scenarios are awkward.** A single `ConformanceTestSuite` value points at one cluster install. Tests like `automtls_istio_test.go` that compose multiple installs need either separate Go test binaries (one suite per install) or to remain on the legacy framework as a permitted exception. Tracked in Open Questions.
-* **Some helpers are spec-evolving.** The upstream `kubernetes.*`, `http.*`, and `roundtripper` packages move with the spec, not with kgateway. We accept this as the cost of letting the upstream community maintain the helpers — it directly serves the **Maintenance burden** goal. Pinning is via `go.mod` like any other dependency.
+* **Helpers are built for Gateway API testing.** For kgateway CRDs (TrafficPolicy, BackendConfigPolicy, ExtAuth), we need custom helpers to check their status and behavior. These are added in Phase 4 with `common/kgateway_helpers/`.
+* **No install management.** The conformance runner expects a Gateway API implementation to already be running. Install lifecycle is not part of the conformance test framework and will have to be managed by kgateway-specific code.
+* **Incompatible with upstream TLS bootstrap.** The framework's `suite.Setup()` performs TLS bootstrap that interferes with kgateway's install flow. We must manage TLS configuration ourselves.
+* **Multi-install scenarios are awkward.** A single `ConformanceTestSuite` value points at one cluster install. Tests that compose multiple installs need either separate Go test binaries (one suite per install) or to remain on the legacy framework as a permitted exception. Tracked in Open Questions.
+* **Helpers follow spec evolution.** The upstream `kubernetes.*`, `http.*`, and `roundtripper` packages evolve with the Gateway API specification. We accept this as the cost of letting the upstream community maintain the helpers — it directly serves the **Maintenance burden** goal. The test framework version is pinned via `go.mod` to match the Gateway API version kgateway targets.
 
 ### Comparison
 
-| Concern | Current kgateway | sigs/e2e-framework | Gateway API conformance *(chosen)* |
+| Concern | Current kgateway | sigs/e2e-framework | Gateway API conformance *(recommended)* |
 |---|---|---|---|
-| Authoring model | `testify/suite` + `BaseTestingSuite` | `func TestX` + `features.Feature` builder | `ConformanceTest` value, dispatched by orchestrator |
-| Helm install / uninstall | Built-in | Bring your own | Out of scope (handled by `make run`, orthogonal per Non-Goals) |
+| Test structure | `testify/suite` + `BaseTestingSuite` | `func TestX` + `features.Feature` builder | `ConformanceTest` value, dispatched by orchestrator |
+| Helm install / uninstall | Built-in | Bring your own | Bring your own |
 | Manifest apply + await | `ApplyManifests` with image pre-pull | `decoder.*` helpers, rest is bring your own | `Applier.MustApplyWithCleanup` — auto `t.Cleanup` |
 | HTTP probe with eventual consistency | `AssertEventuallyConsistentCurlResponse` | None — caller writes one (POC uses `assert.Eventually`) | `http.MakeRequestAndExpectEventuallyConsistentResponse` upstream |
 | Gateway/Route readiness helpers | `EventuallyGatewayAddress` | None | `kubernetes.GatewayAndHTTPRoutesMustBeAccepted` upstream |
@@ -218,7 +224,6 @@ A single value declaration. Manifests are auto-applied by `Run(t, suite)` with `
 #### Current framework — [`test/e2e/features/basicrouting/suite.go`](../test/e2e/features/basicrouting/suite.go)
 
 ```go
-// 25+ lines of setup code just to define one test
 type testingSuite struct {
     *base.BaseTestingSuite
     localGateway common.Gateway
@@ -238,11 +243,37 @@ func (s *testingSuite) SetupSuite() {
 }
 
 func (s *testingSuite) TestGatewayWithRoute() {
-    s.assertSuccessfulResponse()
+    s.assertSuccessfulResponse()  // Finally!
 }
 ```
 
-Two registration files (`suite.go` plus `tests/kgateway_tests.go`), a `TestCase` map, and a `BaseTestingSuite` embedding before the actual assertion runs.
+Three registration touchpoints before the test logic. First, `setup` and `testCases` map in `suite.go`:
+
+```go
+var (
+    setup = base.TestCase{
+        Manifests: []string{"testdata/gateway-with-route.yaml"},
+    }
+    testCases = map[string]*base.TestCase{
+        "TestGatewayWithRoute": {
+            Manifests: []string{"testdata/service.yaml"},
+        },
+        "TestHeadlessService": {
+            Manifests: []string{"testdata/headless-service.yaml"},
+        },
+    }
+)
+```
+
+Second, explicit registration in `tests/kgateway_tests.go`:
+
+```go
+kubeGatewaySuiteRunner.Register("BasicRouting", basicrouting.NewTestingSuite)
+kubeGatewaySuiteRunner.Register("Cors", cors.NewTestingSuite)
+// ... 50+ more registrations ...
+```
+
+The framework requires: a `TestCase` map definition, a `BaseTestingSuite` embedding, a `SetupSuite` method, explicit registration in a central file, and finally—after all that—the test method itself. The ceremony (three files, inheritance chain, setup maps) dominates the test code volume.
 
 #### sigs/e2e-framework POC — [`test/e2e_sigs/features/basicrouting/routing_test.go`](../test/e2e_sigs/features/basicrouting/routing_test.go)
 
@@ -252,6 +283,11 @@ func TestGatewayWithRoute(t *testing.T) {
 
     feat := features.New("Gateway with Route").
         Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+            // Manifest application: repo-specific code required
+            applier := kgateway.NewApplier(cfg.Client())  // Custom helper
+            applier.ApplyManifests(ctx, "testdata/gateway-with-route.yaml")
+            // Cleanup registered via t.Cleanup (framework-standard)
+            
             addr, err := gateway.GetAddress(ctx, cfg, "test-gateway", "kgateway-test")
             if err != nil {
                 t.Fatalf("failed to get gateway address: %v", err)
@@ -271,7 +307,7 @@ func TestGatewayWithRoute(t *testing.T) {
 }
 ```
 
-The fluent `features.New` API is clean, but `gateway.GetAddress` and `assertions.AssertSuccessfulResponse` are in-repo helpers — equivalents of `kubernetes.GatewayAndHTTPRoutesMustBeAccepted` and `http.MakeRequestAndExpectEventuallyConsistentResponse` that we would own indefinitely. 
+The fluent `features.New` API is clean, but manifest application (`kgateway.NewApplier`) and readiness checks (`gateway.GetAddress`) and assertions (`assertions.AssertSuccessfulResponse`) are all in-repo helpers — equivalents of `kubernetes.GatewayAndHTTPRoutesMustBeAccepted` and `http.MakeRequestAndExpectEventuallyConsistentResponse` that we would own indefinitely. The framework provides the lifecycle scaffolding but not the Gateway API–specific machinery. 
 
 ### Recommendation
 
@@ -281,19 +317,21 @@ The decision rests on alignment with the four stated goals:
 
 | Goal | Why the conformance framework fits |
 |---|---|
-| **Speed & efficiency** | Single shared `ConformanceTestSuite`, base manifests applied once at the orchestrator, every feature runs under `t.Parallel()`. The branch-3 POC ([test/sigs_gateway_conformance/conformance_test.go](../test/sigs_gateway_conformance/conformance_test.go)) demonstrates this end-to-end. |
-| **Accessibility** | `ConformanceTest` is the shape every Gateway API contributor already knows. The struct has five fields; the test function takes `(t *testing.T, s *ConformanceTestSuite)`. No kgateway-specific abstractions to learn. |
+| **Speed & efficiency** | The framework supports parallel test execution with proper namespace isolation, allowing tests to run concurrently. |
+| **Accessibility** | `ConformanceTest` is a simple struct. The base shape is easier to learn than the current framework's multi-file setup, though kgateway-specific helpers will be added in Phase 4. |
 | **Reliability & reproducibility** | `Applier.MustApplyWithCleanup` registers `t.Cleanup` automatically — no manual teardown, no leaked state across tests. `MakeRequestAndExpectEventuallyConsistentResponse` is upstream-tuned for eventual-consistency semantics. |
 | **Maintenance burden** | Applier, schemes, HTTP probe, and Gateway-readiness helpers all live in `sigs.k8s.io/gateway-api/conformance/utils/`. We carry only a small `common/kgateway_helpers/` package for policy-status assertions (TrafficPolicy, BackendConfigPolicy, etc.). |
 
-The reasoning, in order of weight:
+The reasoning:
 
-* The "Maintenance burden" goal is the tiebreaker. The conformance framework ships a complete helper library (`kubernetes.GatewayAndHTTPRoutesMustBeAccepted`, `http.MakeRequestAndExpectEventuallyConsistentResponse`, the `RoundTripper` abstraction). Adopting any other framework — including `sigs.k8s.io/e2e-framework` — means re-implementing or vendoring those helpers in-repo. That is the cost we are explicitly trying to stop paying.
-* The original objection that the conformance framework "cannot host kgateway-specific tests without contortion" is **disproved by the branch-3 POC**. `ConformanceTest` is a plain Go struct; we declare new ones in our own packages and call `Run(t, suite)`. The framework does not require the test catalog to live upstream.
-* Adopting a community framework that the kgateway team and external Gateway API contributors *already use* for spec conformance collapses the authoring surface to one. Reviewers do not switch mental models between spec tests and feature tests.
-* Speed comes from doing less per test, not from a faster framework. The conformance shape forces base manifests to be applied once and feature manifests via `Applier.MustApplyWithCleanup` — this is the explicit per-test cost that [#12993](https://github.com/kgateway-dev/kgateway/pull/12993) was reaching for.
+* **Gateway API helpers are built-in.** The conformance framework provides `kubernetes.GatewayAndHTTPRoutesMustBeAccepted`, `http.MakeRequestAndExpectEventuallyConsistentResponse`, and the `RoundTripper` abstraction. Any other framework means reimplementing these in-repo. That's expensive to maintain.
 
-We explicitly do not recommend a "burn down the custom framework" migration. The existing framework's investments — failure dumps, image pre-pull, version gating, persistence flags — are real assets. They are migrated into reusable helpers under `test/sigs_gateway_conformance/common/` as needed, and the custom framework is retired only when nothing depends on it.
+* **It's a community framework.** Gateway API conformance tests already use this shape, so we're not inventing something new—just reusing it for kgateway-specific tests. Reviewers see one test shape, not two.
+
+* **Simple core.** `ConformanceTest` is just a struct with a test function. The framework handles manifest cleanup via `t.Cleanup` automatically. That simplicity is where the speed gain comes from.
+
+* **Extensible for kgateway.** We can write kgateway-specific tests using the same machinery, just adding our own helpers as needed.
+
 
 
 ### Migration Plan
@@ -401,7 +439,7 @@ flowchart TD
 
 #### Phase 2 — Archive the explored alternative 
 
-The `test/e2e_sigs/` POC under branch `basicrouting-e2e-sigs` is an explored alternative recorded in PR [#13890](https://github.com/kgateway-dev/kgateway/pull/13890). 
+The `test/e2e_sigs/` POC under branch `basicrouting-e2e-sigs` is an explored alternative recorded in PR [devc007/kgateway#1](https://github.com/devc007/kgateway/pull/1). 
 
 * Remove `test/e2e_sigs/` from the tree. The PR remains in git history for posterity.
 * Add a "Frameworks evaluated and rejected" subsection to [`devel/testing/e2e-framework.md`](../devel/testing/e2e-framework.md) citing PR #13890 and the reasoning under [Alternatives](#alternatives).
@@ -514,20 +552,24 @@ The investments in the legacy framework that have lasting value (failure dumps, 
 
 ### Test Plan
 
-The migration itself is validated by running the new (`test/sigs_gateway_conformance/`) and legacy (`test/e2e/`) suites side-by-side in CI for at least one release cycle. A migrated test is considered acceptable when:
+Tests will be migrated granularly and validated as that happens.
 
-* It passes on every supported kind cluster configuration that the original test ran on.
-* No new flake signal appears in the new suite over the parallel-run window.
-* Per-test wall time in the new suite is at parity with or better than the original. Wall-time regressions block deletion of the original.
-* Coverage parity is verified by inspection — every assertion in the original maps to an assertion in the new test.
-
-The upstream Gateway API conformance pipeline (`make conformance`, `make all-conformance`) continues to run unchanged and serves as the spec-conformance gate. The new in-repo catalog runs via `make conformance-kgateway` and is gated on every PR. 
 
 ## Alternatives
 
 ### Alternative 1 — Keep the custom framework, optimize it
 
-We could focus all effort on making the existing framework faster (the [#12993](https://github.com/kgateway-dev/kgateway/pull/12993) approach) without adopting a new framework. This is the lowest-risk option. We rejected it because the speed problem is downstream of the abstraction problem: the framework is slow because it does many things implicitly per test. Optimizing those implicit steps still leaves us with a kgateway-specific framework that no other project understands.
+We have working code that handles complex features and policies. Further refactoring could address speed concerns—applying resources ahead of time, reducing per-test setup costs.
+
+However, we chose the conformance framework because:
+
+* **Safer migration path.** We can migrate tests incrementally without breaking existing ones. Refactoring the current framework requires changes that affect all 50+ test suites.
+
+* **Clean break from tech debt.** The current framework carries years of accumulated patterns. Starting fresh with conformance lets us avoid carrying forward those trade-offs.
+
+* **No TestInstallation decomposition.** We don't have to untangle the complex `TestInstallation` bundle. Conformance tests are simpler.
+
+* **Shared maintenance.** Conformance helpers (`kubernetes.*`, `http.*`) are upstream-maintained. The custom framework's improvements benefit only kgateway.
 
 ### Alternative 2 — Adopt `sigs.k8s.io/e2e-framework`
 
@@ -545,14 +587,3 @@ The POC is preserved in [feature branch](https://github.com/devc007/kgateway/pul
 ### Alternative 3 — Maintain two frameworks indefinitely
 
 We could leave existing tests in the custom framework forever and write new tests in the conformance framework. We rejected this as the long-term outcome but accept it as the medium-term one (Phases 3–5 above). Two frameworks indefinitely is a maintenance tax we should pay only during migration.
-
-
-## Approval
-
-This document is the design artifact for issue [#13891](https://github.com/kgateway-dev/kgateway/issues/13891). Approval from kgateway maintainers on:
-
-* the recommendation to adopt the Gateway API conformance framework (`sigs.k8s.io/gateway-api/conformance`) as the single framework for kgateway end-to-end tests, including kgateway-specific feature tests,
-* the canonical structure demonstrated in branch `conformance-second-test-13950` (value-returning `NewConformanceSuite`, per-feature `Tests` slice and `ManifestFS`, single `TestConformance` orchestrator running features under `t.Parallel()`),
-
-
-is the gating outcome of this design phase. Implementation continues with Phase 1  CI integration once the design is approved.
