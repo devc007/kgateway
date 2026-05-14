@@ -244,7 +244,7 @@ func (s *testingSuite) TestGatewayWithRoute() {
 
 Two registration files (`suite.go` plus `tests/kgateway_tests.go`), a `TestCase` map, and a `BaseTestingSuite` embedding before the actual assertion runs.
 
-#### sigs/e2e-framework POC — [`test/e2e_sigs/features/basicrouting/routing_test.go`](../test/e2e_sigs/features/basicrouting/routing_test.go) *(rejected — see [Alternative 2](#alternative-2--adopt-sigsk8sioe2e-framework))*
+#### sigs/e2e-framework POC — [`test/e2e_sigs/features/basicrouting/routing_test.go`](../test/e2e_sigs/features/basicrouting/routing_test.go)
 
 ```go
 func TestGatewayWithRoute(t *testing.T) {
