@@ -143,7 +143,7 @@ Upstream lives at `sigs.k8s.io/gateway-api/conformance/`.
 Strengths:
 
 * **Authoritative for Gateway API behavior.** When the question is "does kgateway conform to the spec for HTTPRoute path matching?", this is exactly the right tool. We already run it via `make conformance` / `make all-conformance`.
-* **Battle-tested helpers.** `MakeRequestAndExpectEventuallyConsistentResponse`, `GatewayMustHaveAddress`, accepted-status checks — all built specifically around the Gateway API surface.
+* **Domain-specific helpers.** `MakeRequestAndExpectEventuallyConsistentResponse`, `GatewayMustHaveAddress`, accepted-status checks — all built specifically around the Gateway API surface.
 * **Feature gating by spec feature.** `Features: []features.FeatureName{...}` directly maps to the Gateway API feature catalog. Skipping is principled, not ad hoc.
 
 Weaknesses (and how the POC addresses them):
