@@ -1,5 +1,7 @@
 Clusters:
-- connectTimeout: 5s
+- commonLbConfig:
+    localityWeightedLbConfig: {}
+  connectTimeout: 5s
   edsClusterConfig:
     edsConfig:
       ads: {}
@@ -49,7 +51,6 @@ Routes:
     routes:
     - match:
         safeRegex:
-          googleRe2: {}
           regex: /.+/foo
       name: listener~80~*-route-0-grpcroute-example-grpc-route-default-0-0-matcher-0
       route:
@@ -65,10 +66,10 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-A
+                  path: /
                   ttl: 10s
     - match:
         safeRegex:
-          googleRe2: {}
           regex: /.+/foo2
       name: listener~80~*-route-1-grpcroute-example-grpc-route-default-1-0-matcher-0
       route:
@@ -84,10 +85,10 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-B
+                  path: /
                   ttl: 31536000s
     - match:
         safeRegex:
-          googleRe2: {}
           regex: /.+/foo3
       name: listener~80~*-route-2-grpcroute-example-grpc-route-default-2-0-matcher-0
       route:
@@ -103,6 +104,7 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-B
+                  path: /
     - match:
         pathSeparatedPrefix: /c1
       name: listener~80~*-route-3-httproute-example-route-default-0-0-matcher-0
@@ -119,6 +121,7 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-A
+                  path: /
                   ttl: 10s
     - match:
         pathSeparatedPrefix: /c2
@@ -136,6 +139,7 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-B
+                  path: /
                   ttl: 31536000s
     - match:
         pathSeparatedPrefix: /c3
@@ -153,6 +157,7 @@ Routes:
                 '@type': type.googleapis.com/envoy.extensions.http.stateful_session.cookie.v3.CookieBasedSessionState
                 cookie:
                   name: Session-B
+                  path: /
 Statuses:
   gateways:
     default/example-gateway:
@@ -215,6 +220,11 @@ Statuses:
           reason: ResolvedRefs
           status: "True"
           type: ResolvedRefs
+        - lastTransitionTime: null
+          message: Successfully programmed Route
+          reason: Programmed
+          status: "True"
+          type: kgateway.dev/Programmed
         controllerName: kgateway
         parentRef:
           group: ""
@@ -234,6 +244,11 @@ Statuses:
           reason: ResolvedRefs
           status: "True"
           type: ResolvedRefs
+        - lastTransitionTime: null
+          message: Successfully programmed Route
+          reason: Programmed
+          status: "True"
+          type: kgateway.dev/Programmed
         controllerName: kgateway
         parentRef:
           group: ""

@@ -2,7 +2,6 @@ package proxy_syncer
 
 import (
 	"context"
-	"fmt"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"istio.io/istio/pkg/kube/krt"
@@ -21,16 +20,46 @@ type uccWithCluster struct {
 	ClusterVersion uint64
 	// +krtEqualsTodo reconcile name-only equality semantics
 	Name string
-	// +krtEqualsTodo surface translation errors in equality or drop field
+	// Error is the translation error for this backend/client pair, if any. Compared by message
+	// in Equals because all errored clusters share one blackhole proto, so ClusterVersion can't
+	// tell error states apart.
 	Error error
+	// BackendSource identifies the Backend this cluster was translated from, for status attribution.
+	BackendSource ir.ObjectSource
+	// BackendGeneration is the observed generation of the source Backend.
+	BackendGeneration int64
+	// resourceName caches the KRT identity key, which KRT recomputes for every row on
+	// every event. Rows are per-client x per-backend, so computing it on each call is a
+	// per-call allocation multiplied by both dimensions.
+	// +noKrtEquals derived from Client and Name; a difference makes it a different KRT row
+	resourceName string
 }
 
 func (c uccWithCluster) ResourceName() string {
-	return fmt.Sprintf("%s/%s", c.Client.ResourceName(), c.Name)
+	// Fall back for rows built as bare struct literals (tests) that skip the cache.
+	if c.resourceName == "" {
+		return uccClusterResourceName(c.Client, c.Name)
+	}
+	return c.resourceName
+}
+
+func uccClusterResourceName(client ir.UniquelyConnectedClient, name string) string {
+	return client.ResourceName() + "/" + name
 }
 
 func (c uccWithCluster) Equals(in uccWithCluster) bool {
-	return c.Client.Equals(in.Client) && c.ClusterVersion == in.ClusterVersion
+	return c.Client.Equals(in.Client) &&
+		c.ClusterVersion == in.ClusterVersion &&
+		c.BackendSource == in.BackendSource &&
+		c.BackendGeneration == in.BackendGeneration &&
+		errString(c.Error) == errString(in.Error)
+}
+
+func errString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }
 
 type PerClientEnvoyClusters struct {
@@ -61,13 +90,20 @@ func NewPerClientEnvoyClusters(
 			if c == nil {
 				continue
 			}
+			var backendGeneration int64
+			if backendObj.Obj != nil {
+				backendGeneration = backendObj.Obj.GetGeneration()
+			}
 			uccWithClusterRet = append(uccWithClusterRet, uccWithCluster{
 				Name:    c.GetName(),
 				Client:  ucc,
 				Cluster: c,
 				// pass along the error(s) indicating to consumers that this cluster is not usable
-				Error:          err,
-				ClusterVersion: utils.HashProto(c),
+				Error:             err,
+				ClusterVersion:    utils.HashProto(c),
+				BackendSource:     backendObj.GetObjectSource(),
+				BackendGeneration: backendGeneration,
+				resourceName:      uccClusterResourceName(ucc, c.GetName()),
 			})
 		}
 		return uccWithClusterRet

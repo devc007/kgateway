@@ -28,15 +28,15 @@ PRs and/or issues that need to land before this release is cut. List the headlin
 
 - [ ] Create and push the `v<MAJOR>.<MINOR>.x` branch from `main` (see [`devel/contributing/releasing.md`](/devel/contributing/releasing.md))
 - [ ] Create a branch protection ruleset, or ask a maintainer to do so, for the `v<MAJOR>.<MINOR>.x` branch
-- [ ] Add the new release branch to [`.github/workflows/osv-scanner.yaml`](/.github/workflows/osv-scanner.yaml) (both the scheduled scan matrix and the `workflow_dispatch` branch options)
+- [ ] On `main`, bump `ROLLING_MAIN_VERSION` in the [`Makefile`](/Makefile) to the next minor's rolling tag via PR (e.g. after cutting `v2.3.x`, set it to `v2.4.0-main`), since `main` now tracks the next minor
+- [ ] Add the new release branch to [`.github/workflows/osv-scanner.yaml`](/.github/workflows/osv-scanner.yaml) (both the scheduled scan matrix and the `workflow_dispatch` branch options), and drop any branch that is no longer LTS. This list is the single source of truth for which branches get scanned; tooling such as `hack/osvtool` and the `cve-bump` skill reads it rather than hardcoding branches
 
 ## Publish the release
 
 The [Release workflow](https://github.com/kgateway-dev/kgateway/actions/workflows/release.yaml) generates the release notes, creates the git tag, builds the artifacts, and publishes the GitHub release. No local steps are needed to cut the release.
 
 - [ ] Open the [Release workflow](https://github.com/kgateway-dev/kgateway/actions/workflows/release.yaml)
-- [ ] Run with branch `v<MAJOR>.<MINOR>.x` and version `v<MAJOR>.<MINOR>.<PATCH>`
-- [ ] Enable "validate release" (runs the conformance suite against the released artifacts)
+- [ ] Run with branch `v<MAJOR>.<MINOR>.x` and version `v<MAJOR>.<MINOR>.<PATCH>` (conformance runs automatically as a gate against the staged artifacts before anything is published)
 - [ ] Watch the workflow to completion
 - [ ] Review the generated release notes on the GitHub release; edit the description if anything was miscategorized
 

@@ -11,13 +11,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections"
 	sdk "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
@@ -54,7 +52,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 									Method: &gwv1.GRPCMethodMatch{
 										Service: new("TestService"),
 										Method:  new("TestMethod"),
-										Type:    ptr.To(gwv1.GRPCMethodMatchExact),
+										Type:    new(gwv1.GRPCMethodMatchExact),
 									},
 								},
 							},
@@ -63,7 +61,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 									BackendRef: gwv1.BackendRef{
 										BackendObjectReference: gwv1.BackendObjectReference{
 											Name: "test-service",
-											Port: ptr.To(gwv1.PortNumber(8080)),
+											Port: new(gwv1.PortNumber(8080)),
 										},
 									},
 								},
@@ -147,7 +145,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 								{
 									Method: &gwv1.GRPCMethodMatch{
 										Service: new("TestService"),
-										Type:    ptr.To(gwv1.GRPCMethodMatchRegularExpression),
+										Type:    new(gwv1.GRPCMethodMatchRegularExpression),
 									},
 								},
 							},
@@ -156,7 +154,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 									BackendRef: gwv1.BackendRef{
 										BackendObjectReference: gwv1.BackendObjectReference{
 											Name: "test-service",
-											Port: ptr.To(gwv1.PortNumber(8080)),
+											Port: new(gwv1.PortNumber(8080)),
 										},
 									},
 								},
@@ -227,7 +225,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 										{
 											Name:  "x-test-header",
 											Value: "test-value",
-											Type:  ptr.To(gwv1.GRPCHeaderMatchExact),
+											Type:  new(gwv1.GRPCHeaderMatchExact),
 										},
 									},
 								},
@@ -237,7 +235,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 									BackendRef: gwv1.BackendRef{
 										BackendObjectReference: gwv1.BackendObjectReference{
 											Name: "test-service",
-											Port: ptr.To(gwv1.PortNumber(8080)),
+											Port: new(gwv1.PortNumber(8080)),
 										},
 									},
 								},
@@ -314,8 +312,8 @@ func TestTransformGRPCRoute(t *testing.T) {
 									BackendRef: gwv1.BackendRef{
 										BackendObjectReference: gwv1.BackendObjectReference{
 											Name:      "test-service",
-											Namespace: ptr.To(gwv1.Namespace("other")),
-											Port:      ptr.To(gwv1.PortNumber(8080)),
+											Namespace: new(gwv1.Namespace("other")),
+											Port:      new(gwv1.PortNumber(8080)),
 										},
 									},
 								},
@@ -406,7 +404,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 									BackendRef: gwv1.BackendRef{
 										BackendObjectReference: gwv1.BackendObjectReference{
 											Name: "test-service",
-											Port: ptr.To(gwv1.PortNumber(8080)),
+											Port: new(gwv1.PortNumber(8080)),
 										},
 									},
 								},
@@ -475,7 +473,7 @@ func TestTransformGRPCRoute(t *testing.T) {
 			// Setup collections
 			grpcRoutes := krttest.GetMockCollection[*gwv1.GRPCRoute](mock)
 			services := krttest.GetMockCollection[*corev1.Service](mock)
-			refgrants := krtcollections.NewRefGrantIndex(krttest.GetMockCollection[*gwv1b1.ReferenceGrant](mock))
+			refgrants := krtcollections.NewRefGrantIndex(krttest.GetMockCollection[*gwv1b1.ReferenceGrant](mock), apisettings.ReferenceGrantPermissive)
 			policies := krtcollections.NewPolicyIndex(krtutil.KrtOptions{}, sdk.ContributesPolicies{}, apisettings.Settings{})
 
 			// Set up backend index
@@ -485,7 +483,6 @@ func TestTransformGRPCRoute(t *testing.T) {
 			// Create RouteIndex with minimal collections needed for GRPC route transformation
 			routesIndex := krtcollections.NewRoutesIndex(
 				krtutil.KrtOptions{},
-				wellknown.DefaultGatewayControllerName,
 				krttest.GetMockCollection[*gwv1.HTTPRoute](mock),
 				grpcRoutes,
 				krttest.GetMockCollection[*gwv1a2.TCPRoute](mock),

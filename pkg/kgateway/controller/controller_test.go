@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -188,7 +188,7 @@ func (s *ControllerSuite) TestGatewayStatus() {
 				},
 				Spec: gwv1.GatewaySpec{
 					Addresses: []gwv1.GatewaySpecAddress{{
-						Type:  ptr.To(gwv1.IPAddressType),
+						Type:  new(gwv1.IPAddressType),
 						Value: localhost,
 					}},
 					GatewayClassName: gwv1.ObjectName(tc.gatewayClass),
@@ -197,7 +197,7 @@ func (s *ControllerSuite) TestGatewayStatus() {
 						Port:     80,
 						AllowedRoutes: &gwv1.AllowedRoutes{
 							Namespaces: &gwv1.RouteNamespaces{
-								From: ptr.To(gwv1.NamespacesFromSame),
+								From: new(gwv1.NamespacesFromSame),
 							},
 						},
 						Name: "listener",
@@ -261,7 +261,7 @@ func (s *ControllerSuite) TestInvalidGatewayParameters() {
 		Spec: kgateway.GatewayParametersSpec{
 			Kube: &kgateway.KubernetesProxyConfig{
 				Deployment: &kgateway.ProxyDeployment{
-					Replicas: ptr.To[int32](2),
+					Replicas: new(int32(2)),
 				},
 			},
 		},
@@ -345,7 +345,7 @@ func (s *ControllerSuite) TestMetrics() {
 					Port:     80,
 					AllowedRoutes: &gwv1.AllowedRoutes{
 						Namespaces: &gwv1.RouteNamespaces{
-							From: ptr.To(gwv1.NamespacesFromSame),
+							From: new(gwv1.NamespacesFromSame),
 						},
 					},
 					Name: "listener",
@@ -604,7 +604,7 @@ func (s *ControllerSuite) TestGatewayClass() {
 			Group:     "different.group",
 			Kind:      "DifferentKind",
 			Name:      "different-params",
-			Namespace: ptr.To(gwv1.Namespace("different-namespace")),
+			Namespace: new(gwv1.Namespace("different-namespace")),
 		}
 		err := s.client.Patch(ctx, gwc, client.MergeFrom(original))
 		r.NoError(err)
@@ -713,7 +713,7 @@ func (s *ControllerSuite) startController(
 		return err
 	}
 
-	if err := mgr.GetClient().Create(ctx, &kgateway.GatewayParameters{
+	if err := s.client.Create(ctx, &kgateway.GatewayParameters{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      selfManagedGatewayClassName,
 			Namespace: "default",
@@ -734,7 +734,6 @@ func (s *ControllerSuite) startController(
 		Client:         kubeClient,
 		Mgr:            mgr,
 		ControllerName: gatewayControllerName,
-		EnableEnvoy:    true,
 		ImageInfo: &deployer.ImageInfo{
 			Registry: "ghcr.io/kgateway-dev",
 			Tag:      "latest",
@@ -762,7 +761,7 @@ func (s *ControllerSuite) startController(
 				Group:     gwv1.Group(wellknown.GatewayParametersGVK.Group),
 				Kind:      gwv1.Kind(wellknown.GatewayParametersGVK.Kind),
 				Name:      selfManagedGatewayClassName,
-				Namespace: ptr.To(gwv1.Namespace("default")),
+				Namespace: new(gwv1.Namespace("default")),
 			},
 			SupportedFeatures: supportedFeatures,
 		},
@@ -789,7 +788,7 @@ func (s *ControllerSuite) startController(
 	// This ensures the controller is fully started before tests run
 	s.EventuallyWithT(func(c *assert.CollectT) {
 		var gcList gwv1.GatewayClassList
-		err := mgr.GetClient().List(ctx, &gcList)
+		err := s.client.List(ctx, &gcList)
 		assert.NoError(c, err, assert.NoError)
 	}, defaultPollTimeout, 250*time.Millisecond, "timed out waiting for Manager to be ready")
 	select {
@@ -797,7 +796,7 @@ func (s *ControllerSuite) startController(
 		if err != nil {
 			return fmt.Errorf("controller-manager exited before it was ready: %w", err)
 		}
-		return fmt.Errorf("controller-manager exited before it was ready")
+		return errors.New("controller-manager exited before it was ready")
 	default:
 	}
 

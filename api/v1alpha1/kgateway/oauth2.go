@@ -90,8 +90,10 @@ type OAuth2Provider struct {
 	// It discovers the authorizationEndpoint, tokenEndpoint, endSessionEndpoint, and jwksURI if specified in the discovery response.
 	// Explicit configuration of these options will take precedence over the discovered values.
 	// Refer to https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig for more details.
-	// Note that the OpenID provider configuration is cached and only refreshed periodically when the GatewayExtension object
-	// is reprocessed.
+	// Note that the OpenID provider configuration is cached. It is refreshed periodically in the background, and a failed
+	// discovery is retried, so a provider that is unreachable when the configuration is first discovered is picked up once
+	// it becomes reachable. Discovery stops once authorizationEndpoint, tokenEndpoint, endSessionEndpoint, and jwksURI
+	// (when JWT parsing is configured) are all set explicitly, since none of the discovered values are then used.
 	// +optional
 	//
 	// +kubebuilder:validation:Pattern=`^https://([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(:[0-9]{1,5})?(/[a-zA-Z0-9\-._~!$&'()*+,;=:@%]*)*/?$`
@@ -201,6 +203,11 @@ type OAuth2JWTConfig struct {
 	// Refer to https://datatracker.ietf.org/doc/html/rfc7517#section-5 for more details.
 	// +optional
 	JWKSURI *HttpsUri `json:"jwksURI,omitempty"`
+
+	// JWKSBackendRef specifies the backend to use for fetching the JWKS.
+	// If not set, the parent OAuth2Provider's BackendRef is used.
+	// +optional
+	JWKSBackendRef *gwv1.BackendObjectReference `json:"jwksBackendRef,omitempty"`
 
 	// AccessToken specifies how to process the retrieved access token.
 	// This requires the access token cookie to be enabled. Requests missing the token will be rejected.

@@ -2,10 +2,14 @@ package backendconfigpolicy
 
 import (
 	"context"
+	"fmt"
+	"hash/fnv"
+	"slices"
 	"time"
 
 	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoydnsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/dns/v3"
 	envoyproxyprotocolv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/proxy_protocol/v3"
 	envoyrawbufferv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/raw_buffer/v3"
@@ -16,28 +20,27 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/kube/krt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/endpoints"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/extensions2/pluginutils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	sdk "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/policy"
 	pluginsdkutils "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/utils"
-	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/cmputils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/validator"
 )
 
 const (
 	PreserveCasePlugin = "envoy.http.stateful_header_formatters.preserve_case"
-	// TransportSocketUpstreamProxyProtocol is the name of the upstream proxy protocol
-	// transport socket. Not defined in go-control-plane wellknown package.
-	TransportSocketUpstreamProxyProtocol = "envoy.transport_sockets.upstream_proxy_protocol"
 )
 
 type BackendConfigPolicyIR struct {
@@ -148,19 +151,10 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections, v 
 	col := krt.WrapClient(cli, commoncol.KrtOpts.ToOptions("BackendConfigPolicy")...)
 	gk := wellknown.BackendConfigPolicyGVK.GroupKind()
 
-	policyStatusMarker, backendConfigPolicyCol := krt.NewStatusCollection(col, func(krtctx krt.HandlerContext, b *kgateway.BackendConfigPolicy) (*krtcollections.StatusMarker, *ir.PolicyWrapper) {
+	backendConfigPolicyCol := krt.NewCollection(col, func(krtctx krt.HandlerContext, b *kgateway.BackendConfigPolicy) *ir.PolicyWrapper {
 		policyIR, errs := translate(commoncol, krtctx, b)
 		if err := validateXDS(ctx, policyIR, v, commoncol.Settings.ValidationMode); err != nil {
 			errs = append(errs, err)
-		}
-
-		// Create status marker if existing status has kgateway controller
-		var statusMarker *krtcollections.StatusMarker
-		for _, ancestor := range b.Status.Ancestors {
-			if string(ancestor.ControllerName) == commoncol.ControllerName {
-				statusMarker = &krtcollections.StatusMarker{}
-				break
-			}
 		}
 
 		pol := &ir.PolicyWrapper{
@@ -176,40 +170,58 @@ func NewPlugin(ctx context.Context, commoncol *collections.CommonCollections, v 
 			Errors:     errs,
 		}
 
-		return statusMarker, pol
+		return pol
 	})
 
-	// processMarkers for policies that have existing status but no current report
-	processMarkers := func(kctx krt.HandlerContext, reportMap *reports.ReportMap) {
-		objStatus := krt.Fetch(kctx, policyStatusMarker)
-		for _, status := range objStatus {
-			policyKey := reporter.PolicyKey{
-				Group:     gk.Group,
-				Kind:      gk.Kind,
-				Namespace: status.Obj.GetNamespace(),
-				Name:      status.Obj.GetName(),
-			}
+	endpointPlugin := &backendConfigEndpointPlugin{}
 
-			// Add empty status to clear stale status for policies with no valid targets
-			if reportMap.Policies[policyKey] == nil {
-				rp := reports.NewReporter(reportMap)
-				// create empty policy report entry with no ancestor refs
-				rp.Policy(policyKey, 0)
-			}
-		}
-	}
 	return sdk.Plugin{
 		ContributesPolicies: map[schema.GroupKind]sdk.PolicyPlugin{
 			wellknown.BackendConfigPolicyGVK.GroupKind(): {
-				Name:                            "BackendConfigPolicy",
-				Policies:                        backendConfigPolicyCol,
-				ProcessPolicyStaleStatusMarkers: processMarkers,
-				ProcessBackend:                  processBackend,
-				GetPolicyStatus:                 getPolicyStatusFn(cli),
-				PatchPolicyStatus:               patchPolicyStatusFn(cli),
+				Name:                   "BackendConfigPolicy",
+				Policies:               backendConfigPolicyCol,
+				ProcessBackend:         processBackend,
+				PerClientEditEndpoints: endpointPlugin.processEndpoints,
+				MergePolicies: func(pols []ir.PolicyAtt) ir.PolicyAtt {
+					return policy.MergePolicies(sortForMerge(pols), mergeBackendConfigPolicies, "")
+				},
+				RegisterPolicyStatus: pluginutils.RegisterPolicyStatus(
+					wellknown.BackendConfigPolicyGVK,
+					col,
+					cli,
+					commoncol.ControllerName,
+					func(o *kgateway.BackendConfigPolicy) gwv1.PolicyStatus { return o.Status },
+					func(om metav1.ObjectMeta, st gwv1.PolicyStatus) *kgateway.BackendConfigPolicy {
+						return &kgateway.BackendConfigPolicy{ObjectMeta: om, Status: st}
+					},
+				),
 			},
 		},
 	}
+}
+
+// sortForMerge sorts policies by precedence weight (desc), creation time
+// (asc), ref string. The ref string is the tie-breaker when two policies
+// share a creation timestamp.
+func sortForMerge(pols []ir.PolicyAtt) []ir.PolicyAtt {
+	out := slices.Clone(pols)
+	slices.SortStableFunc(out, func(a, b ir.PolicyAtt) int {
+		if a.PrecedenceWeight != b.PrecedenceWeight {
+			if a.PrecedenceWeight > b.PrecedenceWeight {
+				return -1
+			}
+			return 1
+		}
+		return ir.ComparePoliciesByCreationTimeAndRef(a, b)
+	})
+	return out
+}
+
+// hasBackendTLSPolicy reports whether the backend has a BackendTLSPolicy
+// attached. This is used to determine whether BCP's TLS config should be applied,
+// as BTP wins for TLS when both are attached to the same backend.
+func hasBackendTLSPolicy(backend ir.BackendObjectIR) bool {
+	return len(backend.AttachedPolicies.Policies[wellknown.BackendTLSPolicyGVK.GroupKind()]) > 0
 }
 
 func processBackend(_ context.Context, polir ir.PolicyIR, backend ir.BackendObjectIR, out *envoyclusterv3.Cluster) {
@@ -232,7 +244,10 @@ func processBackend(_ context.Context, polir ir.PolicyIR, backend ir.BackendObje
 	applyHttp1ProtocolOptions(pol.http1ProtocolOptions, backend, out)
 	applyHttp2ProtocolOptions(pol.http2ProtocolOptions, backend, out)
 
-	if pol.tlsConfig != nil {
+	// BackendTLSPolicy (standard Gateway API) wins for TLS when both are attached
+	// to the same backend. BCP's TLS config is only applied if there is no attached BackendTLSPolicy.
+	tlsAllowed := pol.tlsConfig != nil && !hasBackendTLSPolicy(backend)
+	if tlsAllowed {
 		typedConfig, err := utils.MessageToAny(pol.tlsConfig)
 		if err != nil {
 			logger.Error("failed to convert tls config to any", "error", err)
@@ -258,6 +273,15 @@ func processBackend(_ context.Context, polir ir.PolicyIR, backend ir.BackendObje
 
 	if pol.healthCheck != nil {
 		out.HealthChecks = []*envoycorev3.HealthCheck{pol.healthCheck}
+		// Backend plugins (e.g. the static backend) stamp each endpoint's
+		// health_check_config.hostname with the backend's dial address. Per Envoy
+		// semantics that endpoint-level hostname overrides the cluster-level
+		// http_health_check host (and gRPC authority). When the BackendConfigPolicy
+		// explicitly configures a health check host, honor it by clearing the
+		// auto-stamped endpoint hostname so the configured value is used.
+		if healthCheckHasExplicitHost(pol.healthCheck) {
+			clearEndpointHealthCheckHostnames(out.GetLoadAssignment())
+		}
 	}
 
 	if pol.outlierDetection != nil {
@@ -269,6 +293,36 @@ func processBackend(_ context.Context, polir ir.PolicyIR, backend ir.BackendObje
 	}
 
 	applyDnsClusterConfig(pol, out)
+}
+
+// healthCheckHasExplicitHost reports whether the health check configures a
+// cluster-level host (HTTP) or authority (gRPC) that the user expects to be
+// used for health check requests.
+func healthCheckHasExplicitHost(hc *envoycorev3.HealthCheck) bool {
+	if http := hc.GetHttpHealthCheck(); http != nil {
+		return http.GetHost() != ""
+	}
+	if grpc := hc.GetGrpcHealthCheck(); grpc != nil {
+		return grpc.GetAuthority() != ""
+	}
+	return false
+}
+
+// clearEndpointHealthCheckHostnames removes the per-endpoint
+// health_check_config.hostname override so the cluster-level health check host
+// takes effect. Envoy treats a non-empty endpoint hostname as an override of
+// the cluster-level configuration.
+func clearEndpointHealthCheckHostnames(cla *envoyendpointv3.ClusterLoadAssignment) {
+	if cla == nil {
+		return
+	}
+	for _, locality := range cla.GetEndpoints() {
+		for _, lbEndpoint := range locality.GetLbEndpoints() {
+			if cfg := lbEndpoint.GetEndpoint().GetHealthCheckConfig(); cfg != nil {
+				cfg.Hostname = ""
+			}
+		}
+	}
 }
 
 func translate(
@@ -428,7 +482,7 @@ func applyUpstreamProxyProtocol(ppConfig *envoycorev3.ProxyProtocolConfig, out *
 		return
 	}
 	out.TransportSocket = &envoycorev3.TransportSocket{
-		Name: TransportSocketUpstreamProxyProtocol,
+		Name: wellknown.TransportSocketUpstreamProxyProtocol,
 		ConfigType: &envoycorev3.TransportSocket_TypedConfig{
 			TypedConfig: typedConfig,
 		},
@@ -450,4 +504,41 @@ func TranslateTCPKeepalive(tcpKeepalive *kgateway.TCPKeepalive) *envoycorev3.Tcp
 		out.KeepaliveInterval = &wrapperspb.UInt32Value{Value: uint32(tcpKeepalive.KeepAliveInterval.Duration.Seconds())}
 	}
 	return out
+}
+
+// backendConfigEndpointPlugin provides per-client endpoint processing for
+// zone-aware routing using the backend's already resolved policy attachments.
+type backendConfigEndpointPlugin struct{}
+
+// processEndpoints implements sdk.EndpointEditorPlugin for zone-aware routing.
+// BackendConfigPolicy takes precedence over Kubernetes Service traffic distribution.
+func (p *backendConfigEndpointPlugin) processEndpoints(
+	kctx krt.HandlerContext,
+	ctx context.Context,
+	ucc ir.UniquelyConnectedClient,
+	out endpoints.EndpointInputsEditor,
+) uint64 {
+	pol, bcpIR := selectZoneAwareBackendConfigPolicy(out.PoliciesFor(wellknown.BackendConfigPolicyGVK.GroupKind()))
+	if bcpIR == nil {
+		return 0
+	}
+	// BackendConfigPolicy zoneAware settings take precedence over Service trafficDistribution
+	// settings for the same backend.
+	out.SetTrafficDistribution(wellknown.TrafficDistributionAny)
+
+	hasher := fnv.New64()
+	hasher.Write([]byte(pol.RefString()))
+	hasher.Write(fmt.Appendf(nil, "%v", pol.Generation()))
+	return hasher.Sum64()
+}
+
+func selectZoneAwareBackendConfigPolicy(policies []endpoints.PolicyView) (endpoints.PolicyView, *BackendConfigPolicyIR) {
+	for _, pol := range policies {
+		bcpIR, ok := pol.PolicyIR().(*BackendConfigPolicyIR)
+		if !ok || pol.HasErrors() || bcpIR.loadBalancerConfig == nil || !bcpIR.loadBalancerConfig.hasZoneAware {
+			continue
+		}
+		return pol, bcpIR
+	}
+	return endpoints.PolicyView{}, nil
 }

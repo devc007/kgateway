@@ -6,7 +6,6 @@ import (
 
 	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyendpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/kube/krt/krttest"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	. "github.com/onsi/gomega"
@@ -587,7 +585,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -620,7 +618,6 @@ func TestEndpoints(t *testing.T) {
 				// output
 				emd := ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -709,7 +706,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("not-second-port"),
 							Port:     new(int32(3001)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -836,7 +833,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -873,7 +870,6 @@ func TestEndpoints(t *testing.T) {
 					Zone:   "zone",
 				}, ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -902,7 +898,6 @@ func TestEndpoints(t *testing.T) {
 					Zone:   "zone2",
 				}, ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -987,7 +982,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -1019,7 +1014,6 @@ func TestEndpoints(t *testing.T) {
 				// output
 				emd := ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -1107,7 +1101,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -1137,7 +1131,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -1169,7 +1163,6 @@ func TestEndpoints(t *testing.T) {
 				// Only one endpoint should be present after deduplication
 				emd := ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -1257,7 +1250,7 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("http"),
 							Port:     new(int32(8080)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -1343,17 +1336,17 @@ func TestEndpoints(t *testing.T) {
 						{
 							Name:     new("third-port"),
 							Port:     new(int32(3000)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
 							Name:     new("first-port"),
 							Port:     new(int32(3000)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
 							Name:     new("second-port"),
 							Port:     new(int32(3001)),
-							Protocol: ptr.To(corev1.ProtocolTCP),
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 				},
@@ -1399,7 +1392,6 @@ func TestEndpoints(t *testing.T) {
 				// output
 				emd := ir.EndpointWithMd{
 					LbEndpoint: &envoyendpointv3.LbEndpoint{
-						LoadBalancingWeight: wrapperspb.UInt32(1),
 						HostIdentifier: &envoyendpointv3.LbEndpoint_Endpoint{
 							Endpoint: &envoyendpointv3.Endpoint{
 								Address: &envoycorev3.Address{
@@ -1472,5 +1464,42 @@ func TestEndpoints(t *testing.T) {
 			res := tc.result(tc.upstream)
 			g.Expect(eps.Equals(*res)).To(BeTrue(), "expected %v, got %v", res, eps)
 		})
+	}
+}
+
+func TestCreateLBEndpointAutoMtls(t *testing.T) {
+	labels := map[string]string{wellknown.IstioTlsModeLabel: "istio"}
+
+	// automtls disabled -> no metadata even for istio pods
+	if ep := CreateLBEndpoint("10.0.0.1", 8080, labels, false); ep.GetMetadata() != nil {
+		t.Fatal("expected nil Metadata when automtls disabled")
+	}
+	// automtls enabled but pod not istio-managed -> no metadata
+	if ep := CreateLBEndpoint("10.0.0.1", 8080, map[string]string{"app": "x"}, true); ep.GetMetadata() != nil {
+		t.Fatal("expected nil Metadata for non-istio pod")
+	}
+	// automtls enabled + istio pod -> transport socket match metadata
+	ep := CreateLBEndpoint("10.0.0.1", 8080, labels, true)
+	fm := ep.GetMetadata().GetFilterMetadata()
+	tsm, ok := fm["envoy.transport_socket_match"]
+	if !ok {
+		t.Fatalf("expected transport_socket_match metadata, got %v", fm)
+	}
+	if got := tsm.GetFields()[wellknown.TLSModeLabelShortname].GetStringValue(); got != wellknown.IstioMutualTLSModeLabel {
+		t.Fatalf("unexpected tlsMode: %q", got)
+	}
+}
+
+func TestCreateLBEndpointNoWeightWrapper(t *testing.T) {
+	ep := CreateLBEndpoint("10.0.0.1", 8080, nil, false)
+	if ep.GetLoadBalancingWeight() != nil {
+		t.Fatal("expected no LoadBalancingWeight wrapper; unset weight defaults to 1 in Envoy")
+	}
+	if ep.GetMetadata() != nil {
+		t.Fatal("expected nil Metadata when automtls disabled")
+	}
+	sock := ep.GetEndpoint().GetAddress().GetSocketAddress()
+	if sock.GetAddress() != "10.0.0.1" || sock.GetPortValue() != 8080 {
+		t.Fatalf("unexpected socket address: %v:%d", sock.GetAddress(), sock.GetPortValue())
 	}
 }

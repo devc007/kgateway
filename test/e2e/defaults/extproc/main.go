@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,7 +24,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var grpcport = flag.String("grpcport", ":18080", "grpcport")
+var (
+	logger    = slog.Default().With("component", "e2e/extproc")
+	grpcport  = flag.String("grpcport", ":18080", "grpcport")
+	addHeader = flag.String("add-header", "", "header to always add to processed requests in key:value format (e.g., x-server-id:server-1)")
+)
 
 type Instructions struct {
 	// Header key/value pairs to add to the request or response.
@@ -41,7 +46,7 @@ type server struct{}
 type healthServer struct{}
 
 func (s *healthServer) Check(ctx context.Context, in *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
-	slog.Info("handling grpc Check request", "request", in.String())
+	logger.Info("handling grpc Check request", "request", in.String())
 	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
 }
 
@@ -58,12 +63,12 @@ func (s *healthServer) List(ctx context.Context, in *grpc_health_v1.HealthListRe
 }
 
 func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer) error {
-	slog.Info("process")
+	logger.Info("process")
 	ctx := srv.Context()
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("context done")
+			logger.Info("context done")
 			return ctx.Err()
 		default:
 		}
@@ -81,13 +86,14 @@ func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer
 		resp := &service_ext_proc_v3.ProcessingResponse{}
 		switch v := req.Request.(type) {
 		case *service_ext_proc_v3.ProcessingRequest_RequestHeaders:
-			slog.Info("got RequestHeaders")
+			logger.Info("got RequestHeaders")
 
 			h := req.Request.(*service_ext_proc_v3.ProcessingRequest_RequestHeaders)
 			headersResp, err := getHeadersResponseFromInstructions(h.RequestHeaders)
 			if err != nil {
 				return err
 			}
+			appendDefaultHeader(headersResp)
 			resp = &service_ext_proc_v3.ProcessingResponse{
 				Response: &service_ext_proc_v3.ProcessingResponse_RequestHeaders{
 					RequestHeaders: headersResp,
@@ -95,7 +101,7 @@ func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer
 			}
 
 		case *service_ext_proc_v3.ProcessingRequest_RequestBody:
-			slog.Info("got RequestBody - forwarding")
+			logger.Info("got RequestBody - forwarding")
 
 			h := req.Request.(*service_ext_proc_v3.ProcessingRequest_RequestBody)
 
@@ -116,11 +122,11 @@ func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer
 				},
 			}
 		case *service_ext_proc_v3.ProcessingRequest_RequestTrailers:
-			slog.Info("got RequestTrailers (not currently handled)")
+			logger.Info("got RequestTrailers (not currently handled)")
 			resp.Response = &service_ext_proc_v3.ProcessingResponse_RequestTrailers{}
 
 		case *service_ext_proc_v3.ProcessingRequest_ResponseHeaders:
-			slog.Info("got ResponseHeaders")
+			logger.Info("got ResponseHeaders")
 
 			h := req.Request.(*service_ext_proc_v3.ProcessingRequest_ResponseHeaders)
 			headersResp, err := getHeadersResponseFromInstructions(h.ResponseHeaders)
@@ -134,7 +140,7 @@ func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer
 			}
 
 		case *service_ext_proc_v3.ProcessingRequest_ResponseBody:
-			slog.Info("got ResponseBody - forwarding")
+			logger.Info("got ResponseBody - forwarding")
 
 			h := req.Request.(*service_ext_proc_v3.ProcessingRequest_ResponseBody)
 
@@ -156,19 +162,19 @@ func (s *server) Process(srv service_ext_proc_v3.ExternalProcessor_ProcessServer
 			}
 
 		case *service_ext_proc_v3.ProcessingRequest_ResponseTrailers:
-			slog.Info("got ResponseTrailers (not currently handled)")
+			logger.Info("got ResponseTrailers (not currently handled)")
 			resp.Response = &service_ext_proc_v3.ProcessingResponse_ResponseTrailers{}
 
 		default:
-			slog.Info("unknown request type", "request type", v)
+			logger.Info("unknown request type", "request type", v)
 		}
 
 		// At this point we believe we have created a valid response...
 		// note that this is sometimes not the case
 		// anyways for now just send it
-		slog.Info("sending ProcessingResponse")
+		logger.Info("sending ProcessingResponse")
 		if err := srv.Send(resp); err != nil {
-			slog.Info("send error", "error", err)
+			logger.Info("send error", "error", err)
 			return err
 		}
 
@@ -180,7 +186,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", *grpcport)
 	if err != nil {
-		slog.Error("failed to listen", "error", err)
+		logger.Error("failed to listen", "error", err)
 		os.Exit(1)
 	}
 
@@ -191,22 +197,45 @@ func main() {
 
 	grpc_health_v1.RegisterHealthServer(s, &healthServer{})
 
-	slog.Info("starting gRPC server", "port", *grpcport)
+	logger.Info("starting gRPC server", "port", *grpcport)
 
 	gracefulStop := make(chan os.Signal, 1)
 	signal.Notify(gracefulStop, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		sig := <-gracefulStop
-		slog.Info("caught sig", "sig", sig)
+		logger.Info("caught sig", "sig", sig)
 		time.Sleep(time.Second)
-		slog.Info("graceful stop completed")
+		logger.Info("graceful stop completed")
 		os.Exit(0)
 	}()
 	err = s.Serve(lis)
 	if err != nil {
-		slog.Error("killing server", "error", err)
+		logger.Error("killing server", "error", err)
 		os.Exit(1)
 	}
+}
+
+// appendDefaultHeader adds the --add-header value to the response if configured.
+func appendDefaultHeader(resp *service_ext_proc_v3.HeadersResponse) {
+	if *addHeader == "" {
+		return
+	}
+	parts := strings.SplitN(*addHeader, ":", 2)
+	if len(parts) != 2 {
+		return
+	}
+	if resp.Response == nil {
+		resp.Response = &service_ext_proc_v3.CommonResponse{}
+	}
+	if resp.Response.HeaderMutation == nil {
+		resp.Response.HeaderMutation = &service_ext_proc_v3.HeaderMutation{}
+	}
+	resp.Response.HeaderMutation.SetHeaders = append(
+		resp.Response.HeaderMutation.SetHeaders,
+		&core_v3.HeaderValueOption{
+			Header: &core_v3.HeaderValue{Key: parts[0], RawValue: []byte(parts[1])},
+		},
+	)
 }
 
 func getInstructionsFromHeaders(in *service_ext_proc_v3.HttpHeaders) string {
@@ -229,7 +258,7 @@ func getHeadersResponseFromInstructions(in *service_ext_proc_v3.HttpHeaders) (*s
 	var instructions *Instructions
 	err := json.Unmarshal([]byte(instructionString), &instructions)
 	if err != nil {
-		slog.Info("error unmarshalling instructions", "error", err)
+		logger.Info("error unmarshalling instructions", "error", err)
 		return nil, err
 	}
 

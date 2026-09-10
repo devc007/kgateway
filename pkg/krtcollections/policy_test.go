@@ -3,6 +3,7 @@ package krtcollections
 import (
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
+	"k8s.io/apimachinery/pkg/types"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -71,6 +72,51 @@ func TestGetBackendSameNamespace(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRoutesFor(t *testing.T) {
+	parentStatus := []gwv1.RouteParentStatus{{
+		ControllerName: gwv1.GatewayController(wellknown.DefaultGatewayControllerName),
+		ParentRef: gwv1.ParentReference{
+			Name: "example-gateway",
+		},
+	}}
+
+	routes := preRouteIndex(t, []any{
+		&gwv1.HTTPRoute{
+			ObjectMeta: metav1.ObjectMeta{Name: "http-route", Namespace: "default"},
+			Spec: gwv1.HTTPRouteSpec{
+				CommonRouteSpec: gwv1.CommonRouteSpec{
+					ParentRefs: []gwv1.ParentReference{{
+						Name: "example-gateway",
+					}},
+				},
+			},
+			Status: gwv1.HTTPRouteStatus{
+				RouteStatus: gwv1.RouteStatus{Parents: parentStatus},
+			},
+		},
+		&gwv1.GRPCRoute{
+			ObjectMeta: metav1.ObjectMeta{Name: "grpc-route", Namespace: "default"},
+			Spec: gwv1.GRPCRouteSpec{
+				CommonRouteSpec: gwv1.CommonRouteSpec{
+					ParentRefs: []gwv1.ParentReference{{
+						Name: "example-gateway",
+					}},
+				},
+			},
+			Status: gwv1.GRPCRouteStatus{
+				RouteStatus: gwv1.RouteStatus{Parents: parentStatus},
+			},
+		},
+	})
+
+	nns := types.NamespacedName{Namespace: "default", Name: "example-gateway"}
+	group := wellknown.GatewayGVK.Group
+	kind := wellknown.GatewayGVK.Kind
+
+	rts := routes.RoutesFor(krt.TestingDummyContext{}, nns, group, kind)
+	require.Len(t, rts, 2)
 }
 
 func TestGetBackendDifNsWithRefGrant(t *testing.T) {
@@ -344,7 +390,7 @@ func backend(ns string) *kgateway.Backend {
 			Namespace: ns,
 		},
 		Spec: kgateway.BackendSpec{
-			Type: ptr.To(kgateway.BackendTypeStatic),
+			Type: new(kgateway.BackendTypeStatic),
 			Static: &kgateway.StaticBackend{
 				Hosts: []kgateway.Host{
 					{
@@ -505,7 +551,7 @@ func preRouteIndex(t test.Failer, inputs []any) *RoutesIndex {
 		},
 		apisettings.Settings{},
 	)
-	refgrants := NewRefGrantIndex(krttest.GetMockCollection[*gwv1b1.ReferenceGrant](mock))
+	refgrants := NewRefGrantIndex(krttest.GetMockCollection[*gwv1b1.ReferenceGrant](mock), apisettings.ReferenceGrantPermissive)
 	upstreams := NewBackendIndex(krtutil.KrtOptions{}, policies, refgrants)
 	upstreams.AddBackends(svcGk, k8sSvcUpstreams(services))
 	backends := krttest.GetMockCollection[*kgateway.Backend](mock)
@@ -515,7 +561,7 @@ func preRouteIndex(t test.Failer, inputs []any) *RoutesIndex {
 	tcpproutes := krttest.GetMockCollection[*gwv1a2.TCPRoute](mock)
 	tlsroutes := krttest.GetMockCollection[*gwv1a2.TLSRoute](mock)
 	grpcroutes := krttest.GetMockCollection[*gwv1.GRPCRoute](mock)
-	rtidx := NewRoutesIndex(krtutil.KrtOptions{}, wellknown.DefaultGatewayControllerName, httproutes, grpcroutes, tcpproutes, tlsroutes, policies, upstreams, refgrants, apisettings.Settings{})
+	rtidx := NewRoutesIndex(krtutil.KrtOptions{}, httproutes, grpcroutes, tcpproutes, tlsroutes, policies, upstreams, refgrants, apisettings.Settings{})
 	services.WaitUntilSynced(nil)
 	policyCol.WaitUntilSynced(nil)
 	for !rtidx.HasSynced() || !refgrants.HasSynced() || !policyCol.HasSynced() {
@@ -618,11 +664,11 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 			for i := range tc.routes {
 				routeLabels := maps.Clone(routeLabels)
 				if tc.byLabel {
-					routeLabels[fmt.Sprint(i)] = "yes"
+					routeLabels[strconv.Itoa(i)] = "yes"
 				}
 				inputs = append(inputs, &gwv1.HTTPRoute{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "httproute-" + fmt.Sprint(i),
+						Name:      "httproute-" + strconv.Itoa(i),
 						Namespace: "default",
 						Labels:    routeLabels,
 					},
@@ -634,7 +680,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 										BackendRef: gwv1.BackendRef{
 											BackendObjectReference: gwv1.BackendObjectReference{
 												Name: gwv1.ObjectName("foo"),
-												Port: ptr.To(gwv1.PortNumber(8080)),
+												Port: new(gwv1.PortNumber(8080)),
 											},
 										},
 									},
@@ -652,7 +698,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 						Group:     wellknown.TrafficPolicyGVK.Group,
 						Kind:      wellknown.TrafficPolicyGVK.Kind,
 						Namespace: "default",
-						Name:      "policy-" + fmt.Sprint(i),
+						Name:      "policy-" + strconv.Itoa(i),
 					},
 					Policy:   &kgateway.TrafficPolicy{},
 					PolicyIR: fakePolicyIR{},
@@ -660,7 +706,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 				if tc.byLabel {
 					switch tc.selectionPolicy {
 					case onePolicyPerRoute:
-						routeLabels[fmt.Sprint(i)] = "yes"
+						routeLabels[strconv.Itoa(i)] = "yes"
 					case allPoliciesPerRoute:
 					}
 					p.TargetRefs = []ir.PolicyRef{
@@ -677,7 +723,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 							{
 								Group: "gateway.networking.k8s.io",
 								Kind:  "HTTPRoute",
-								Name:  "httproute-" + fmt.Sprint(i),
+								Name:  "httproute-" + strconv.Itoa(i),
 							},
 						}
 					case allPoliciesPerRoute:
@@ -686,7 +732,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 							p.TargetRefs = append(p.TargetRefs, ir.PolicyRef{
 								Group: "gateway.networking.k8s.io",
 								Kind:  "HTTPRoute",
-								Name:  "httproute-" + fmt.Sprint(r),
+								Name:  "httproute-" + strconv.Itoa(r),
 							})
 						}
 					}
@@ -698,7 +744,7 @@ func BenchmarkPolicyAttachment(b *testing.B) {
 			for b.Loop() {
 				rtidx := preRouteIndex(b, inputs)
 				firstRoute := "httproute-0"
-				lastRoute := "httproute-" + fmt.Sprint(tc.routes-1)
+				lastRoute := "httproute-" + strconv.Itoa(tc.routes-1)
 
 				for _, route := range []string{firstRoute, lastRoute} {
 					h := rtidx.FetchHttp(krt.TestingDummyContext{}, "default", route)

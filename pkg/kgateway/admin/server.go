@@ -2,12 +2,14 @@ package admin
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"net"
 	"net/http"
-	"sort"
+	"slices"
+	"strconv"
 	"time"
 
 	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -15,14 +17,21 @@ import (
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/controller"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
+	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/version"
 )
+
+var logger = logging.New("admin")
 
 func RunAdminServer(ctx context.Context, setupOpts *controller.SetupOpts) error {
 	// serverHandlers defines the custom handlers that the Admin Server will support
 	serverHandlers := getServerHandlers(ctx, setupOpts.KrtDebugger, setupOpts.Cache)
+	bindAddress := "localhost"
+	if setupOpts.GlobalSettings != nil && setupOpts.GlobalSettings.AdminBindAddress != "" {
+		bindAddress = setupOpts.GlobalSettings.AdminBindAddress
+	}
 
-	startHandlers(ctx, serverHandlers)
+	startHandlers(ctx, bindAddress, serverHandlers)
 
 	return nil
 }
@@ -74,7 +83,7 @@ func writeJSON(w http.ResponseWriter, obj any, req *http.Request) {
 	}
 }
 
-func startHandlers(ctx context.Context, addHandlers ...func(mux *http.ServeMux, profiles map[string]dynamicProfileDescription)) {
+func startHandlers(ctx context.Context, bindAddress string, addHandlers ...func(mux *http.ServeMux, profiles map[string]dynamicProfileDescription)) {
 	mux := new(http.ServeMux)
 	profileDescriptions := map[string]dynamicProfileDescription{}
 	for _, addHandler := range addHandlers {
@@ -84,17 +93,17 @@ func startHandlers(ctx context.Context, addHandlers ...func(mux *http.ServeMux, 
 	mux.HandleFunc("/", idx)
 	mux.HandleFunc("/snapshots/", idx)
 	server := &http.Server{
-		Addr:              fmt.Sprintf("localhost:%d", wellknown.KgatewayAdminPort),
+		Addr:              net.JoinHostPort(bindAddress, strconv.Itoa(int(wellknown.KgatewayAdminPort))),
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	slog.Info("admin server starting", "address", server.Addr)
+	logger.Info("admin server starting", "address", server.Addr)
 	go func() {
 		err := server.ListenAndServe()
 		if err == http.ErrServerClosed {
-			slog.Info("admin server closed")
+			logger.Info("admin server closed")
 		} else {
-			slog.Warn("admin server closed with unexpected error", "error", err)
+			logger.Warn("admin server closed with unexpected error", "error", err)
 		}
 	}()
 	go func() {
@@ -102,7 +111,7 @@ func startHandlers(ctx context.Context, addHandlers ...func(mux *http.ServeMux, 
 		if server != nil {
 			err := server.Close()
 			if err != nil {
-				slog.Warn("admin server shutdown returned error", "error", err)
+				logger.Warn("admin server shutdown returned error", "error", err)
 			}
 		}
 	}()
@@ -124,8 +133,8 @@ func index(profileDescriptions map[string]dynamicProfileDescription) func(w http
 			})
 		}
 
-		sort.Slice(profiles, func(i, j int) bool {
-			return profiles[i].Name < profiles[j].Name
+		slices.SortFunc(profiles, func(a, b profile) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
 
 		// Adding other profiles exposed from within this package
